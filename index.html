@@ -258,52 +258,37 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
 }
 .tlink-muted:hover{ color:var(--ink); border-bottom-color:var(--ink-3); }
 
-/* ===== Card 4 — find me ===== */
+/* ===== Card — Contacts (compact inline) ===== */
 .card-findme{
   grid-column: 1 / -1;
+  padding:22px 28px 22px;
 }
-.findme-row{
-  display:grid;
-  grid-template-columns:repeat(6,1fr);
-  gap:18px;
-  margin-top:6px;
-}
-.findme-item.span2{ grid-column:span 2; }
-.findme-item.span3{ grid-column:span 3; }
-.findme-item.span3 .v{ white-space:nowrap; }
-@media (max-width: 720px){
-  .findme-row{ grid-template-columns:1fr; gap:12px; }
-  .findme-item.span2, .findme-item.span3{ grid-column:span 1; }
-  .findme-item.span3 .v{ white-space:normal; }
-}
-.findme-item{
+.contacts-row{
+  display:flex; flex-wrap:wrap;
+  gap:8px 28px;
+  margin-top:4px;
   font-family:var(--sans);
-  min-width:0;
 }
-.findme-item .k{
-  font-size:10.5px;
-  letter-spacing:.1em;
-  text-transform:uppercase;
-  color:var(--ink-4);
-  margin-bottom:4px;
+.contacts-item{
+  display:inline-flex; align-items:baseline; gap:7px;
+  font-size:13px;
+  line-height:1.5;
 }
-.findme-item .v{
-  font-size:14px;
-  color:var(--ink);
-  font-weight:500;
+.contacts-item .k{
+  font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-4); font-weight:500;
 }
-.findme-item .v a{
-  color:var(--ink);
-  text-decoration:none;
+.contacts-item .v{ color:var(--ink); }
+.contacts-item .v a{
+  color:var(--ink); text-decoration:none;
   border-bottom:1px solid var(--rule-2);
 }
-.findme-item .v a:hover{ color:var(--accent); border-bottom-color:var(--accent); }
-.findme-item .v a.hub{
-  color:var(--chess-dk);
-  font-weight:600;
-  border-bottom-color:rgba(79,125,44,0.25);
+.contacts-item .v a:hover{ color:var(--accent); border-bottom-color:var(--accent); }
+.contacts-item .v a.hub{
+  color:var(--chess-dk); font-weight:600;
+  border-bottom-color:rgba(79,125,44,0.3);
 }
-.findme-item .v a.hub:hover{ color:var(--chess-green); border-bottom-color:var(--chess-green); }
+.contacts-item .v a.hub:hover{ color:var(--chess-green); border-bottom-color:var(--chess-green); }
 
 /* ===== Talenthunt embed ===== */
 .card-th{
@@ -507,9 +492,8 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
         </div>
         <iframe class="th-frame"
                 id="thFrame"
-                src="https://talenthunt.work/mike-daykhin?jd=57cdac1e-5c9e-40e1-9b12-42507eb3e4a7"
+                data-src="https://talenthunt.work/mike-daykhin?jd=57cdac1e-5c9e-40e1-9b12-42507eb3e4a7"
                 title="Mike Daykhin — talenthunt agent"
-                loading="lazy"
                 allow="clipboard-write"
                 referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
@@ -526,34 +510,18 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
       </div>
     </div>
 
-    <!-- Card 4: Find me (full width) -->
+    <!-- Card 5: Contacts (full width, compact) -->
     <div class="card card-findme">
       <div class="card-head">
         <span class="ico-glyph" aria-hidden="true">♟</span>
-        <h2>Find me</h2>
+        <h2>Contacts</h2>
       </div>
-      <p class="blurb">All the obvious ways, and the chess one.</p>
-      <div class="findme-row">
-        <div class="findme-item span2">
-          <div class="k">chess.com</div>
-          <div class="v"><a href="https://www.chess.com/member/MikeDay-1" target="_blank" rel="noopener">MikeDay-1</a></div>
-        </div>
-        <div class="findme-item span2">
-          <div class="k">email</div>
-          <div class="v"><a href="mailto:mike@daykhin.com">mike@daykhin.com</a></div>
-        </div>
-        <div class="findme-item span2">
-          <div class="k">linkedin</div>
-          <div class="v"><a href="https://www.linkedin.com/in/mdaykhin" target="_blank" rel="noopener">/in/mdaykhin</a></div>
-        </div>
-        <div class="findme-item span3">
-          <div class="k">where</div>
-          <div class="v">Tel Aviv · full US-hours overlap</div>
-        </div>
-        <div class="findme-item span3">
-          <div class="k">this page</div>
-          <div class="v"><a class="hub" href="https://chess-com-application.daykhin.com">chess-com-application.daykhin.com</a></div>
-        </div>
+      <div class="contacts-row">
+        <span class="contacts-item"><span class="k">chess.com</span><span class="v"><a href="https://www.chess.com/member/MikeDay-1" target="_blank" rel="noopener">MikeDay-1</a></span></span>
+        <span class="contacts-item"><span class="k">email</span><span class="v"><a href="mailto:mike@daykhin.com">mike@daykhin.com</a></span></span>
+        <span class="contacts-item"><span class="k">linkedin</span><span class="v"><a href="https://www.linkedin.com/in/mdaykhin" target="_blank" rel="noopener">/in/mdaykhin</a></span></span>
+        <span class="contacts-item"><span class="k">where</span><span class="v">Tel Aviv · full US-hours overlap</span></span>
+        <span class="contacts-item"><span class="k">this page</span><span class="v"><a class="hub" href="https://chess-com-application.daykhin.com">chess-com-application.daykhin.com</a></span></span>
       </div>
     </div>
 
@@ -596,46 +564,44 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
   });
 })();
 
-// Hide the loader as soon as the iframe fires 'load'.
-// Also: prevent Chrome's auto-scroll-to-iframe behavior when its content
-// autofocuses an input (Safari doesn't do this, Chrome does).
+// Lazy-load the talenthunt iframe ONLY when it enters viewport.
+// Reason: talenthunt autofocuses its chat input on load, which makes Chrome
+// auto-scroll the page down to bring the iframe fully into view. If the
+// iframe loaded on page open, the page would jump. Loading it only when
+// already visible eliminates the jump — user is already there.
 (function(){
   const fr = document.getElementById('thFrame');
   const ld = document.getElementById('thLoader');
   if(!fr || !ld) return;
 
-  // Track whether the user is actively scrolling so we don't fight their input.
-  let userIsScrolling = false;
-  let scrollIdleTimer;
-  const markUserScroll = () => {
-    userIsScrolling = true;
-    clearTimeout(scrollIdleTimer);
-    scrollIdleTimer = setTimeout(() => { userIsScrolling = false; }, 500);
+  let loaded = false;
+  const loadIframe = () => {
+    if (loaded) return;
+    const target = fr.dataset.src;
+    if (!target) return;
+    loaded = true;
+    fr.src = target;
   };
-  ['wheel','touchstart','touchmove','keydown'].forEach(evt => {
-    document.addEventListener(evt, markUserScroll, { passive: true });
-  });
 
-  // Remember the scroll position the user is at, updated continuously while
-  // they're not interacting with the iframe.
-  let intendedScroll = window.scrollY;
-  window.addEventListener('scroll', () => {
-    if (userIsScrolling) intendedScroll = window.scrollY;
-  }, { passive: true });
+  fr.addEventListener('load', () => ld.classList.add('gone'));
 
-  fr.addEventListener('load', () => {
-    ld.classList.add('gone');
-    // Wait two frames to let any iframe-triggered focus-scroll happen,
-    // then revert if the user didn't ask for it.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (!userIsScrolling && Math.abs(window.scrollY - intendedScroll) > 40) {
-        window.scrollTo({ top: intendedScroll, behavior: 'instant' });
-      }
-    }));
-  });
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          loadIframe();
+          io.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px' });
+    io.observe(fr);
+  } else {
+    // Old browsers — just load it.
+    loadIframe();
+  }
 
-  // Safety: hide loader after 8s no matter what.
-  setTimeout(() => ld.classList.add('gone'), 8000);
+  // Safety: hide loader after 12s even if iframe never fires load.
+  setTimeout(() => ld.classList.add('gone'), 12000);
 })();
 </script>
 

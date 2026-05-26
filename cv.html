@@ -44,16 +44,30 @@
     padding:48px 56px;
   }
 
-  .name{ font-size:31px; font-weight:700; letter-spacing:.3px; color:var(--ink); line-height:1.05; }
-  .target{ margin-top:11px; font-size:14.5px; font-weight:700; letter-spacing:.3px; color:var(--green-dk); }
-  .contact-hub{ margin-top:9px; font-size:13px; }
-  .contact-hub a.hub{ color:var(--green-dk); font-weight:600; text-decoration:none; }
+  .meta{ font-size:12px; color:var(--muted); letter-spacing:.3px; line-height:1; }
+  .name-row{ display:flex; align-items:baseline; justify-content:space-between; gap:24px; margin-top:8px; flex-wrap:wrap; }
+  .name{ font-size:38px; font-weight:700; letter-spacing:.3px; color:var(--ink); line-height:1.05; flex-shrink:0; }
+  .tags{ font-size:11px; color:var(--muted); font-weight:400; letter-spacing:.01em; text-align:right; flex:1; line-height:1.4; margin-top:0 !important; }
+  /* Header — URL prominent, other contacts secondary */
+  .contact-hub{ margin-top:14px; font-size:15px; }
+  .contact-hub a.hub{ color:var(--green-dk); font-weight:700; text-decoration:none; }
   .contact-hub a.hub:hover{ color:var(--green); text-decoration:underline; }
-  .contact{ margin-top:4px; font-size:12px; color:var(--muted); }
+  .contact{ margin-top:3px; font-size:11px; color:var(--muted); letter-spacing:.01em; }
   .contact a{ color:var(--muted); text-decoration:none; }
   .contact a:hover{ color:var(--ink); }
-  .tags{ margin-top:8px; font-size:11px; color:#6b7178; letter-spacing:.6px; }
+
+  /* CV footer — single CTA, green-tinted to match CL P.S. */
+  .cv-footer{ margin-top:30px; padding:20px 24px; background:rgba(129,182,76,0.12); border-radius:4px; text-align:center; }
+  .cv-footer .prompt{ font-size:11.5px; color:var(--text); letter-spacing:.04em; margin-bottom:8px; line-height:1.5; }
+  .cv-footer .url{ display:inline-block; font-size:18px; font-weight:700; color:var(--green-dk); text-decoration:none; letter-spacing:.005em; }
+  .cv-footer .url:hover{ color:var(--green); text-decoration:underline; }
   .rule-green{ height:2px; background:var(--green); border:0; margin:16px 0 19px; border-radius:2px; }
+
+  /* CV footer plashka — same style as CL P.S. */
+  .cv-footer{ margin-top:24px; padding:16px 20px; background:rgba(129,182,76,0.12); border-radius:4px; font-size:13px; color:var(--text); line-height:1.7; }
+  .cv-footer strong{ color:var(--ink); font-weight:600; }
+  .cv-footer a.hub{ color:var(--green-dk); font-weight:600; text-decoration:none; }
+  .cv-footer a.hub:hover{ color:var(--green); text-decoration:underline; }
 
   section{ margin-top:22px; }
   h2{ font-size:12.5px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase;
@@ -86,7 +100,7 @@
   .xp .d{ font-size:12.2px; color:var(--text); margin-top:3px; line-height:1.55; }
   .xp .d + .d{ margin-top:5px; }
 
-  .earlier-h{ font-size:12.5px; font-weight:700; color:var(--ink); margin:18px 0 8px; letter-spacing:.3px; }
+  .earlier-h{ font-size:12.5px; font-weight:700; color:var(--ink); margin:22px 0 8px; padding-top:14px; border-top:1px solid var(--hair); letter-spacing:.3px; }
   .mini{ margin-bottom:9px; }
   .mini .ml{ font-size:12.6px; color:var(--ink); font-weight:700; }
   .mini .mp{ color:var(--green-dk); font-weight:600; font-size:12.4px; }
@@ -125,10 +139,12 @@
 <div class="doc">
 
   <header>
-    <div class="name">Mike Daykhin</div>
-    <div class="target">SVP, Commercial Strategy — Chess.com</div>
-    <div class="tags">Commercial Strategy · Partnerships · Content &amp; Product Monetization</div>
-    <div class="contact-hub"><a class="hub" href="https://chess-com-application.daykhin.com">chess-com-application.daykhin.com</a></div>
+    <div class="meta">CV · for SVP, Commercial Strategy · Chess.com</div>
+    <div class="name-row">
+      <div class="name">Mike Daykhin</div>
+      <div class="tags">Commercial Strategy · Partnerships · Content &amp; Product Monetization</div>
+    </div>
+    <div class="contact-hub"><a class="hub" href="https://chess-com-application.daykhin.com">→ chess-com-application.daykhin.com</a></div>
     <div class="contact"><a href="mailto:mike@daykhin.com">mike@daykhin.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/mdaykhin">LinkedIn</a> &nbsp;·&nbsp; Tel Aviv, Israel (EMEA) &nbsp;·&nbsp; Remote, full overlap with U.S. hours &nbsp;·&nbsp; chess.com: MikeDay-1</div>
   </header>
   <hr class="rule-green">
@@ -247,6 +263,10 @@
   <section>
     <h2>Education &amp; Languages</h2>
     <div class="edu"><b>BSc, Applied Mathematics</b> — Southern Federal University. &nbsp;·&nbsp; <b>Languages:</b> English (fluent) · Russian (native).</div>
+  </section>
+
+  <section class="cv-footer">
+    <strong>Go to</strong> <a class="hub" href="https://chess-com-application.daykhin.com">chess-com-application.daykhin.com</a> for this CV, a cover letter, an outside-in deep-dive on Chess.com I prepared independently, and a live AI agent built on my profile.
   </section>
 
 </div>
