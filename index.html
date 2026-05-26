@@ -509,6 +509,7 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
                 id="thFrame"
                 src="https://talenthunt.work/mike-daykhin?jd=57cdac1e-5c9e-40e1-9b12-42507eb3e4a7"
                 title="Mike Daykhin — talenthunt agent"
+                loading="lazy"
                 allow="clipboard-write"
                 referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
@@ -595,16 +596,45 @@ h1 .arrow{ color:var(--chess-green); font-weight:500; padding:0 4px; }
   });
 })();
 
-// Hide the loader as soon as the iframe fires 'load'. For cross-origin we can't
-// introspect the contents, but 'load' firing means HTTP completed and at least
-// the page document is in the iframe.
+// Hide the loader as soon as the iframe fires 'load'.
+// Also: prevent Chrome's auto-scroll-to-iframe behavior when its content
+// autofocuses an input (Safari doesn't do this, Chrome does).
 (function(){
   const fr = document.getElementById('thFrame');
   const ld = document.getElementById('thLoader');
   if(!fr || !ld) return;
-  fr.addEventListener('load', () => { ld.classList.add('gone'); });
-  // Safety: hide loader after 8s no matter what — the visible "open in new tab"
-  // link in the loader still works while it's showing.
+
+  // Track whether the user is actively scrolling so we don't fight their input.
+  let userIsScrolling = false;
+  let scrollIdleTimer;
+  const markUserScroll = () => {
+    userIsScrolling = true;
+    clearTimeout(scrollIdleTimer);
+    scrollIdleTimer = setTimeout(() => { userIsScrolling = false; }, 500);
+  };
+  ['wheel','touchstart','touchmove','keydown'].forEach(evt => {
+    document.addEventListener(evt, markUserScroll, { passive: true });
+  });
+
+  // Remember the scroll position the user is at, updated continuously while
+  // they're not interacting with the iframe.
+  let intendedScroll = window.scrollY;
+  window.addEventListener('scroll', () => {
+    if (userIsScrolling) intendedScroll = window.scrollY;
+  }, { passive: true });
+
+  fr.addEventListener('load', () => {
+    ld.classList.add('gone');
+    // Wait two frames to let any iframe-triggered focus-scroll happen,
+    // then revert if the user didn't ask for it.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!userIsScrolling && Math.abs(window.scrollY - intendedScroll) > 40) {
+        window.scrollTo({ top: intendedScroll, behavior: 'instant' });
+      }
+    }));
+  });
+
+  // Safety: hide loader after 8s no matter what.
   setTimeout(() => ld.classList.add('gone'), 8000);
 })();
 </script>
