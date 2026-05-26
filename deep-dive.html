@@ -1,0 +1,2493 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chess.com Deep Dive — May 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ===========================================================
+   Chess.com Deep Dive — editorial layout
+   Inspired by Stratechery / a16z annual reports / Pitchbook
+   =========================================================== */
+
+:root {
+  --bg:           #fbfaf7;
+  --panel:       #ffffff;
+  --ink:         #1a1a1a;
+  --ink-2:       #3d3d3d;
+  --ink-3:       #6b6b6b;
+  --ink-4:       #9a9a9a;
+  --rule:        #e6e3dc;
+  --rule-2:      #d8d4c9;
+  --accent:      #8a2a2a;      /* deep oxblood — single accent */
+  --accent-soft: #f3e6e6;
+  --hi:          #fff4d6;      /* highlight bg */
+  --verified:    #2f6e3c;
+  --estimated:   #8a6d1e;
+  --unverified:  #9a3a3a;
+  --code-bg:     #f3f0e8;
+  --maxw:        780px;
+  --sidebar-w:   268px;
+  --serif:       "Charter","Iowan Old Style","Sitka Text","Source Serif Pro",ui-serif,Georgia,serif;
+  --sans:        -apple-system,BlinkMacSystemFont,"Inter","Söhne","Segoe UI",system-ui,sans-serif;
+  --mono:        "JetBrains Mono","SF Mono",Menlo,Consolas,monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============== LAYOUT ============== */
+
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+}
+
+/* Topbar (back-to-application navigation) */
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #1d2129;
+  color: #e7e9ec;
+  padding: 10px 22px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 13px;
+  font-family: var(--sans);
+  border-bottom: 1px solid #000;
+}
+.topbar a{
+  color: #cfd3d8;
+  text-decoration: none;
+  padding: 6px 12px;
+  border: 1px solid #3a3f48;
+  border-radius: 4px;
+  transition: all .12s;
+}
+.topbar a:hover{
+  background: #2a2f38;
+  color: #fff;
+  border-color: #4a4f58;
+}
+.topbar a.primary{
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.topbar a.primary:hover{ background: #6f1f1f; border-color: #6f1f1f; }
+.topbar .crumb{ color: #9aa0a8; flex: 1; }
+
+/* Sidebar */
+.sidebar {
+  position: sticky;
+  top: 44px;
+  align-self: start;
+  height: calc(100vh - 44px);
+  overflow-y: auto;
+  padding: 32px 22px 32px 28px;
+  border-right: 1px solid var(--rule);
+  background: var(--bg);
+  font-family: var(--sans);
+  font-size: 13px;
+}
+.sidebar-brand {
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.sidebar-tag {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.sidebar nav ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: toc;
+}
+.sidebar nav > ol > li {
+  counter-increment: toc;
+  margin: 0 0 4px 0;
+}
+.sidebar nav a {
+  display: block;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 5px 8px 5px 12px;
+  border-left: 2px solid transparent;
+  line-height: 1.35;
+  font-size: 13px;
+  transition: all 0.12s ease;
+}
+.sidebar nav a:hover { color: var(--ink); border-left-color: var(--rule-2); }
+.sidebar nav a.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 500;
+}
+.sidebar nav > ol > li > a::before {
+  content: "§" counter(toc) "  ";
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.sidebar nav ol ol {
+  list-style: none;
+  padding-left: 18px;
+  margin: 2px 0 8px 0;
+}
+.sidebar nav ol ol a {
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.sidebar-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+/* Main content column */
+.main {
+  padding: 56px 64px 120px;
+  max-width: calc(var(--maxw) + 200px);
+}
+.content-inner {
+  max-width: var(--maxw);
+}
+
+/* ============== TYPOGRAPHY ============== */
+
+h1, h2, h3, h4 {
+  font-family: var(--sans);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+h1 {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 64px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 36px 0 12px;
+}
+h4 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 24px 0 8px;
+  color: var(--ink-2);
+  letter-spacing: 0.01em;
+}
+
+p { margin: 0 0 18px; }
+p + p { margin-top: 0; }
+em { font-style: italic; }
+strong { font-weight: 700; color: var(--ink); }
+
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(138,42,42,0.25); }
+a:hover { border-bottom-color: var(--accent); }
+
+ul, ol { padding-left: 24px; margin: 0 0 18px; }
+li { margin-bottom: 6px; }
+
+hr { border: none; border-top: 1px solid var(--rule); margin: 40px 0; }
+
+.disclaimer{
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-2);
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin: 22px 0 18px;
+  line-height: 1.55;
+}
+
+/* ============== MOBILE-SIZE NOTICE ============== */
+.mobile-notice{
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: var(--bg);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px;
+  text-align: center;
+  font-family: var(--sans);
+}
+.mobile-notice .mn-glyph{ font-size: 44px; color: var(--accent); margin-bottom: 14px; line-height: 1; }
+.mobile-notice .mn-title{ font-size: 20px; font-weight: 600; color: var(--ink); margin-bottom: 12px; line-height: 1.3; max-width: 340px; }
+.mobile-notice .mn-desc{ font-size: 14px; line-height: 1.6; color: var(--ink-2); max-width: 380px; margin-bottom: 24px; }
+.mobile-notice .mn-actions{ display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.mobile-notice .mn-btn{
+  padding: 10px 16px;
+  font-family: var(--sans);
+  font-size: 13px;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid var(--rule-2);
+  background: var(--panel);
+  color: var(--ink-2);
+  transition: all .12s;
+}
+.mobile-notice .mn-btn:hover{ border-color: var(--ink-3); color: var(--ink); }
+.mobile-notice .mn-btn.primary{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.mobile-notice .mn-btn.primary:hover{ background: #6f1f1f; border-color: #6f1f1f; color: #fff; }
+.mobile-notice .mn-hint{ font-size: 11px; color: var(--ink-4); margin-top: 22px; }
+
+@media (max-width: 639px){
+  .mobile-notice{ display: flex; }
+}
+body.force-show .mobile-notice{ display: none !important; }
+
+blockquote {
+  margin: 22px 0;
+  padding: 8px 0 8px 22px;
+  border-left: 3px solid var(--accent);
+  color: var(--ink-2);
+  font-style: italic;
+  background: transparent;
+}
+blockquote p:last-child { margin-bottom: 0; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--ink-2);
+}
+pre {
+  font-family: var(--mono);
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 18px 0 24px;
+  color: var(--ink-2);
+}
+pre code { background: none; padding: 0; }
+
+/* ============== HEADER / HERO ============== */
+
+.eyebrow {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.hero-meta {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink-3);
+  margin: 14px 0 0;
+}
+.hero-meta span { margin-right: 16px; }
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 28px 0 0;
+  padding: 14px 18px;
+  background: #f5f1e8;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.legend strong { color: var(--ink); font-weight: 600; margin-right: 4px; }
+
+/* ============== BADGES ============== */
+
+.badge {
+  display: inline-block;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 2px;
+  vertical-align: 2px;
+  border: 1px solid transparent;
+}
+.badge.verified  { background: #e8f1ea; color: var(--verified);  border-color: #c8dccd; }
+.badge.estimated { background: #f3edd7; color: var(--estimated); border-color: #dbcfa3; }
+.badge.unverified{ background: #f6e3e3; color: var(--unverified);border-color: #e2c0c0; }
+
+/* ============== HERO NUMBERS ============== */
+
+.hero-numbers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin: 32px 0 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.hero-number {
+  padding: 22px 16px 22px 0;
+  border-right: 1px solid var(--rule);
+}
+.hero-number:last-child { border-right: none; padding-right: 0; }
+.hero-number:nth-child(n+2) { padding-left: 24px; }
+.hero-number .n-val {
+  font-family: var(--sans);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hero-number .n-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 8px;
+}
+.hero-number .n-sub {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+/* ============== EXECUTIVE SUMMARY BOX ============== */
+
+.exec-box {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 26px 32px;
+  margin: 36px 0 0;
+}
+.exec-box h3 {
+  margin-top: 0;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+}
+.exec-box p { font-size: 16.5px; }
+.exec-box ol { padding-left: 22px; }
+
+/* ============== TABLES ============== */
+
+.tbl-wrap { overflow-x: auto; margin: 18px 0 26px; }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+}
+th, td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+th {
+  background: #f5f1e8;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--rule-2);
+}
+td { color: var(--ink-2); }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: rgba(138,42,42,0.025); }
+
+/* Sortable table affordance */
+table.sortable th {
+  cursor: pointer;
+  position: relative;
+  padding-right: 22px;
+  user-select: none;
+}
+table.sortable th::after {
+  content: "↕";
+  position: absolute;
+  right: 8px;
+  top: 9px;
+  opacity: 0.25;
+  font-size: 11px;
+}
+table.sortable th.sort-asc::after  { content: "↑"; opacity: 0.9; color: var(--accent); }
+table.sortable th.sort-desc::after { content: "↓"; opacity: 0.9; color: var(--accent); }
+
+/* ============== CHARTS ============== */
+
+.chart-card {
+  margin: 26px 0;
+  padding: 22px 22px 18px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.chart-title {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+  letter-spacing: 0.01em;
+}
+.chart-sub {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+  letter-spacing: 0.02em;
+}
+.chart-box { position: relative; height: 320px; }
+
+/* ============== TIMELINE ============== */
+
+.timeline {
+  position: relative;
+  padding-left: 28px;
+  margin: 22px 0 28px;
+  border-left: 1px solid var(--rule-2);
+}
+.timeline-item {
+  position: relative;
+  padding: 0 0 22px 22px;
+}
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -34px;
+  top: 6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+}
+.timeline-item.muted::before { border-color: var(--ink-4); }
+.timeline-item.major::before { background: var(--accent); border-color: var(--accent); width: 13px; height: 13px; left: -35px; }
+.timeline-item .t-date {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.timeline-item .t-title {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 2px 0 4px;
+}
+.timeline-item .t-body {
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.timeline-item .t-detail {
+  display: none;
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #f5f1e8;
+  border-left: 2px solid var(--accent);
+  font-size: 13px;
+  color: var(--ink-2);
+  border-radius: 0 3px 3px 0;
+}
+.timeline-item:hover .t-detail { display: block; }
+
+/* Horizontal news timeline */
+.news-timeline {
+  display: flex;
+  overflow-x: auto;
+  gap: 12px;
+  padding: 16px 4px 22px;
+  margin: 18px 0 24px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.news-card {
+  flex: 0 0 220px;
+  padding: 14px 14px 12px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--ink-4);
+  border-radius: 2px;
+  font-family: var(--sans);
+}
+.news-card.t-scandal { border-top-color: var(--unverified); }
+.news-card.t-viral   { border-top-color: var(--accent); }
+.news-card.t-product { border-top-color: var(--verified); }
+.news-card.t-fin     { border-top-color: #2c5d8a; }
+.news-card.t-partner { border-top-color: var(--estimated); }
+.news-card.t-rival   { border-top-color: #5a2a8a; }
+.news-card.t-ma      { border-top-color: var(--ink-2); }
+.news-card .n-date {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.news-card .n-type {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: #eee;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.news-card.t-scandal .n-type { background: #f6e3e3; color: var(--unverified); }
+.news-card.t-viral   .n-type { background: var(--accent-soft); color: var(--accent); }
+.news-card.t-product .n-type { background: #e8f1ea; color: var(--verified); }
+.news-card.t-fin     .n-type { background: #e1ecf5; color: #2c5d8a; }
+.news-card.t-partner .n-type { background: #f3edd7; color: var(--estimated); }
+.news-card.t-rival   .n-type { background: #ece1f3; color: #5a2a8a; }
+.news-card.t-ma      .n-type { background: #ebebe6; color: var(--ink-2); }
+.news-card .n-title { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+.news-card .n-body  { font-size: 12px; color: var(--ink-2); margin-top: 6px; line-height: 1.45; }
+
+/* ============== ORG CHART ============== */
+
+.org {
+  margin: 22px 0 28px;
+  font-family: var(--sans);
+}
+.org-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.org-card {
+  flex: 1 1 220px;
+  min-width: 220px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.org-card.ceo { border-top: 3px solid var(--accent); }
+.org-card.exec { border-top: 3px solid var(--ink-3); }
+.org-card.departed { opacity: 0.55; border-top: 3px solid var(--unverified); }
+.org-card .role {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.org-card .name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 4px 0 2px;
+}
+.org-card .detail {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+/* ============== KEY-STAT INLINE ============== */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0;
+  margin: 18px 0 22px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.stat {
+  padding: 16px 14px 14px 0;
+  border-right: 1px solid var(--rule);
+}
+.stat:last-child { border-right: none; }
+.stat:nth-child(n+2) { padding-left: 18px; }
+.stat .v {
+  font-family: var(--sans);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.stat .l {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+/* ============== CALLOUTS ============== */
+
+.callout {
+  margin: 22px 0;
+  padding: 16px 20px;
+  background: #f5f1e8;
+  border-left: 3px solid var(--accent);
+  font-size: 14.5px;
+  color: var(--ink-2);
+  border-radius: 0 3px 3px 0;
+}
+.callout strong { color: var(--ink); }
+.callout p { margin: 0 0 8px; }
+.callout p:last-child { margin-bottom: 0; }
+
+.callout.note {
+  border-left-color: var(--ink-3);
+  background: #f0eee7;
+}
+.callout.risk {
+  border-left-color: var(--unverified);
+  background: #f9eded;
+}
+.callout.ok {
+  border-left-color: var(--verified);
+  background: #ecf3ed;
+}
+
+/* ============== BACK-TO-TOP ============== */
+
+.to-top {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  z-index: 100;
+  font-family: var(--sans);
+}
+.to-top.visible { display: flex; }
+.to-top:hover { background: var(--accent); }
+
+/* Sidebar toggle on mobile */
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  left: 14px;
+  top: 60px;
+  z-index: 200;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--rule-2);
+  padding: 7px 11px;
+  font-family: var(--sans);
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(26,26,26,0.10), 0 1px 3px rgba(26,26,26,0.06);
+  transition: box-shadow .12s, transform .12s;
+}
+.sidebar-toggle:hover{
+  box-shadow: 0 6px 18px rgba(26,26,26,0.14), 0 1px 3px rgba(26,26,26,0.08);
+  transform: translateY(-1px);
+}
+
+/* ============== BIBLIOGRAPHY ============== */
+
+.bib-section h3 {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 28px;
+}
+.bib-list {
+  list-style: none;
+  padding-left: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+}
+.bib-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  line-height: 1.4;
+}
+
+/* ============== RESPONSIVE ============== */
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar {
+    position: fixed;
+    left: -300px;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 150;
+    transition: left 0.25s ease;
+    box-shadow: 2px 0 18px rgba(0,0,0,0.08);
+  }
+  .sidebar.open { left: 0; }
+  .sidebar-toggle { display: block; }
+  .main { padding: 60px 22px 100px; }
+  .hero-numbers { grid-template-columns: 1fr; }
+  .hero-number { border-right: none; border-bottom: 1px solid var(--rule); padding: 18px 0; }
+  .hero-number:nth-child(n+2) { padding-left: 0; }
+  .hero-number:last-child { border-bottom: none; }
+  h1 { font-size: 30px; }
+  h2 { font-size: 22px; }
+}
+
+@media print {
+  .sidebar, .to-top, .sidebar-toggle { display: none !important; }
+  .main { padding: 20px; max-width: none; }
+  body { font-size: 11pt; background: white; }
+  .chart-box { height: 240px; }
+  a { color: var(--ink); border-bottom: none; }
+  h2 { page-break-before: auto; break-before: auto; }
+  .news-timeline { overflow: visible; flex-wrap: wrap; }
+  .news-card { flex: 0 0 30%; }
+}
+</style>
+</head>
+<body>
+
+<div class="mobile-notice" id="mobileNotice">
+  <div class="mn-glyph">♟</div>
+  <div class="mn-title">This deep-dive is meant for a wider screen.</div>
+  <div class="mn-desc">It has dense tables, side-by-side comparisons, and charts that need at least 640px to read comfortably. Open on a laptop, or proceed anyway.</div>
+  <div class="mn-actions">
+    <a class="mn-btn" href="./">← Back to overview</a>
+    <button class="mn-btn primary" onclick="document.body.classList.add('force-show')">View anyway →</button>
+  </div>
+  <div class="mn-hint">~30,000 words across 10 sections · best viewed at 1000px+</div>
+</div>
+
+<div class="topbar">
+  <a href="./">← All application materials</a>
+  <span class="crumb">Outside-In Deep Dive · Chess.com</span>
+</div>
+
+
+<button class="sidebar-toggle" id="sidebarToggle">≡ Menu</button>
+
+<div class="layout">
+
+<!-- ====================== SIDEBAR ====================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">Chess.com Deep Dive</div>
+  <div class="sidebar-tag">DD Report · May 2026</div>
+  <nav>
+    <ol>
+      <li><a href="#exec">Executive Summary</a></li>
+      <li><a href="#s1">Company DNA &amp; History</a>
+        <ol>
+          <li><a href="#s1-1">Founding</a></li>
+          <li><a href="#s1-2">Corporate structure</a></li>
+          <li><a href="#s1-3">M&amp;A timeline</a></li>
+          <li><a href="#s1-4">Investment history</a></li>
+        </ol>
+      </li>
+      <li><a href="#s2">Financial Performance</a>
+        <ol>
+          <li><a href="#s2-1">Revenue trajectory</a></li>
+          <li><a href="#s2-2">Revenue structure</a></li>
+          <li><a href="#s2-3">Unit economics</a></li>
+          <li><a href="#s2-4">Valuation</a></li>
+          <li><a href="#s2-5">Profitability</a></li>
+        </ol>
+      </li>
+      <li><a href="#s3">Audience &amp; Platform Metrics</a>
+        <ol>
+          <li><a href="#s3-1">Audience size</a></li>
+          <li><a href="#s3-2">Engagement</a></li>
+          <li><a href="#s3-3">Geography</a></li>
+          <li><a href="#s3-4">Demographics</a></li>
+          <li><a href="#s3-5">App vs web</a></li>
+        </ol>
+      </li>
+      <li><a href="#s4">Media Ecosystem</a>
+        <ol>
+          <li><a href="#s4-1">YouTube</a></li>
+          <li><a href="#s4-2">Twitch &amp; streaming</a></li>
+          <li><a href="#s4-3">Contracted streamers</a></li>
+          <li><a href="#s4-4">Social vs Lichess</a></li>
+          <li><a href="#s4-6">ChessKid</a></li>
+          <li><a href="#s4-7">Chessable</a></li>
+        </ol>
+      </li>
+      <li><a href="#s5">Marketing &amp; Growth</a>
+        <ol>
+          <li><a href="#s5-1">Zero-UA model</a></li>
+          <li><a href="#s5-2">Content &amp; SEO</a></li>
+          <li><a href="#s5-3">Influencer strategy</a></li>
+          <li><a href="#s5-4">Viral moments overlay</a></li>
+          <li><a href="#s5-5">Tournaments as marketing</a></li>
+        </ol>
+      </li>
+      <li><a href="#s6">Sponsorships &amp; Partnerships</a>
+        <ol>
+          <li><a href="#s6-1">Incoming sponsors</a></li>
+          <li><a href="#s6-2">Outgoing prize funds</a></li>
+          <li><a href="#s6-3">B2B partnerships</a></li>
+          <li><a href="#s6-4">FIDE block</a></li>
+          <li><a href="#s6-5">Endeavor / WME / EWC</a></li>
+        </ol>
+      </li>
+      <li><a href="#s7">Key People</a>
+        <ol>
+          <li><a href="#s7-1">Founders</a></li>
+          <li><a href="#s7-2">Danny Rensch</a></li>
+          <li><a href="#s7-3">C-Suite</a></li>
+          <li><a href="#s7-4">Ambassadors</a></li>
+          <li><a href="#s7-5">Culture</a></li>
+        </ol>
+      </li>
+      <li><a href="#s8">Competitive Landscape</a>
+        <ol>
+          <li><a href="#s8-1">Lichess</a></li>
+          <li><a href="#s8-2">Chess24 postmortem</a></li>
+          <li><a href="#s8-3">ICC</a></li>
+          <li><a href="#s8-5">Take Take Take</a></li>
+          <li><a href="#s8-6">Comparison table</a></li>
+        </ol>
+      </li>
+      <li><a href="#s9">News &amp; Events 2024–2026</a>
+        <ol>
+          <li><a href="#s9-1">Niemann saga</a></li>
+          <li><a href="#s9-4">Gukesh WCC effect</a></li>
+          <li><a href="#s9-5">Product launches</a></li>
+          <li><a href="#s9-7">Other events</a></li>
+        </ol>
+      </li>
+      <li><a href="#s10">Methodology &amp; Caveats</a></li>
+      <li><a href="#bib">Bibliography</a></li>
+    </ol>
+  </nav>
+  <div class="sidebar-footer">
+    Compiled by Mike Daykhin with AI research agents · May 2026<br>
+    External view · Public sources only · All financials reconstructed.
+  </div>
+</aside>
+
+<!-- ====================== MAIN ====================== -->
+<main class="main">
+<div class="content-inner">
+
+<!-- ============== HERO ============== -->
+<section id="top">
+  <div class="eyebrow">Outside-In Due Diligence — External View</div>
+  <h1>Chess.com — Deep Dive</h1>
+  <p style="font-family:var(--sans);font-size:16px;color:var(--ink-3);max-width:600px;margin-top:6px;">
+    A 252-million-member private platform that, after 17 years bootstrapped, is now deliberately rebuilding its media, partnerships, and governance posture inside an 18-month window.
+  </p>
+  <div class="hero-meta">
+    <span><strong>Compiled:</strong> 25 May 2026</span>
+    <span><strong>Author:</strong> Mike Daykhin, with AI research agents</span>
+    <span><strong>Status:</strong> Personal · External view · Not affiliated with Chess.com</span>
+  </div>
+
+  <div class="disclaimer">
+    Prepared independently from public sources while applying for SVP, Commercial Strategy at Chess.com.
+    Inevitable gaps and inferences an insider would correct in seconds are part of the point.
+  </div>
+
+  <div class="legend">
+    <span><strong>Confidence:</strong></span>
+    <span><span class="badge verified">✓</span> verified — primary source</span>
+    <span><span class="badge estimated">~</span> estimated — triangulated</span>
+    <span><span class="badge unverified">?</span> unverified — single source</span>
+  </div>
+
+  <!-- HERO NUMBERS -->
+  <div class="hero-numbers">
+    <div class="hero-number">
+      <div class="n-val">252M+</div>
+      <div class="n-label">Registered Members</div>
+      <div class="n-sub">Q1 2026 · +18% YoY <span class="badge verified">✓</span></div>
+    </div>
+    <div class="hero-number">
+      <div class="n-val">9.7M</div>
+      <div class="n-label">Daily Active Users</div>
+      <div class="n-sub">Q1 2026 · +17.7% YoY <span class="badge verified">✓</span></div>
+    </div>
+    <div class="hero-number">
+      <div class="n-val">2.6B</div>
+      <div class="n-label">Games / Quarter</div>
+      <div class="n-sub">Q1 2026 · ~28M / day <span class="badge verified">✓</span></div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="v">$150–220M</div><div class="l">Estimated ARR 2024–25 <span class="badge estimated">~</span></div></div>
+    <div class="stat"><div class="v">$1B+</div><div class="l">Self-reported valuation 2023 <span class="badge verified">✓</span></div></div>
+    <div class="stat"><div class="v">~88%</div><div class="l">Revenue from subscriptions <span class="badge estimated">~</span></div></div>
+    <div class="stat"><div class="v">~1.95M</div><div class="l">Paying subscribers <span class="badge estimated">~</span></div></div>
+    <div class="stat"><div class="v">668</div><div class="l">Headcount, fully remote <span class="badge verified">✓</span></div></div>
+    <div class="stat"><div class="v">2009</div><div class="l">Profitable since <span class="badge verified">✓</span></div></div>
+  </div>
+</section>
+
+<!-- ============== EXECUTIVE SUMMARY ============== -->
+<section id="exec">
+  <div class="exec-box">
+    <h3>Executive Summary — Why Now</h3>
+    <p>
+      The single question that organises this report is <em>why Chess.com is professionalising its strategic marketing and partnerships function right now</em>. The answer is a convergence of six forces inside an 18-month window. Magnus Carlsen's <strong>Take Take Take</strong> launched into play-and-learn on 6 April 2026, partnering with Lichess and going directly at Chess.com's core. Co-founder CTO <strong>Jay Severson departed</strong> in 2024–25, the first major leadership exit in 19 years. <strong>Endeavor's December 2023 minority investment</strong> bundled WME as exclusive global brand agent, opening luxury, fashion, NBA and NFL Rolodexes Chess.com could never reach as a chess-niche platform. The old <strong>social-event-coverage flywheel collapsed</strong> (-34% impressions, -75% interactions YoY at trough) but is being deliberately rebuilt around IRL, UGC for women, and esports. The <strong>Esports World Cup deal</strong> hardwires Titled Tuesday into the world's largest esports festival through 2027 and delivered Chess.com's #1 viewership event ever (259K peak). And <strong>FIDE elections in Samarkand, September 2026</strong> open a once-a-decade governance window in which Chess.com's own ambassador Viswanathan Anand sits on the incumbent ticket as Deputy President.
+    </p>
+    <p>
+      The strategic logic underneath all six: Chess.com spent 15 years building a bootstrapped consumer monopoly. From 2022 onward — General Atlantic in, PMG acquired for ~$82M, Endeavor in, EWC integration — it is converting that monopoly into a <strong>mainstream entertainment property</strong> at the precise moment that (a) its iconic talent is building a parallel platform, (b) its social distribution model has saturated, and (c) FIDE governance is genuinely contestable for the first time. Marketing and partnerships are no longer back-office functions; they are the lever that closes the loop.
+    </p>
+
+    <h4 style="margin-top:24px;">Seven findings the rest of the report supports</h4>
+    <ol>
+      <li><strong>The $150M+ revenue is built on a self-imposed monetisation ceiling.</strong> 13-year price freeze (2009–2022), zero paid UA, ~1.3% conversion of registered members. Endeavor + Leibow + No-Ads tier are the first deliberate dismantling of those self-limits. (§2, §5)</li>
+      <li><strong>The PMG acquisition (Dec 2022, ~$82M) was structurally underpriced.</strong> Chess.com bought the entire chess IP stack — Chessable, Chess24, CCT, Magnus brand — for less than one year's revenue, then closed Chess24 as a competing site and shed print operations to Quality Chess (2024) while keeping digital rights. (§1, §8)</li>
+      <li><strong>The moat versus Lichess is the ecosystem, not the product.</strong> Lichess matches Chess.com on per-session engagement (15:07 vs 14:27) and runs on €650K/year donations. Chess.com runs on ~$200M/year. The 1:300 funding ratio buys ChessKid (14.8M), Chessable (630K active), Proctor, prize events, EWC integration — none of which Lichess can replicate. (§3, §8)</li>
+      <li><strong>The social-media collapse is intentional, not organic.</strong> Q1 2026 board report states it explicitly: "transitioning event coverage to Chess24; Chess.com focusing on IRL content and UGC formats targeting women audiences." VP Alex Leibow (ex-Snap) was hired in 2024 to execute this pivot. The old social flywheel is being deliberately torn down to make room for documentary, IRL, and esports formats. (§4, §5)</li>
+      <li><strong>Carlsen is the most valuable and most dangerous asset on the cap table.</strong> Magnus is contractually restricted from promoting Take Take Take, but TTT raised $9M from Coatue, Snö, Patrick Collison, Jim Breyer and is partnered with Lichess. The PMG-era non-compete is being tested in real time; if it lapses or is renegotiated, Chess.com loses its premium sport-narrative anchor. (§7, §8)</li>
+      <li><strong>The FIDE governance window matters more than any sponsorship deal.</strong> Anand running as Dvorkovich's Deputy President on the incumbent ticket is the most underreported fact in chess strategy. Combined with FIDE's January 2026 capitulation on Freestyle Chess, Chess.com now has friendly access at the second-highest level of chess governance regardless of who wins the September 2026 election. (§6)</li>
+      <li><strong>The next 12 months are pre-IPO posture, even without an announced IPO.</strong> GA + Endeavor cap table, board reports published for the first time in company history (Q3 2025 onwards), WME entertainment infrastructure, recurring IRL event calendar, multi-year Saudi prize money. The shape is unmistakable. Nothing public commits to an IPO; everything public looks like a preparation. (§1, §2, §9)</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 1
+     ============================================================ -->
+<h2 id="s1">§1 — Company DNA &amp; History</h2>
+
+<h3 id="s1-1">1.1 Founding (1994–2009)</h3>
+<p>
+  The chess.com domain was registered in 1994 and absorbed by <strong>Aficionado Inc.</strong> in Berkeley, which sold <em>Chess Mentor</em> tutoring software <span class="badge verified">✓</span>. In 2005 Aficionado entered bankruptcy and a friend of Erik Allebest's won the asset bundle — software and domain — for <strong>$55,000</strong> at auction <span class="badge verified">✓</span>.
+</p>
+<p>
+  Allebest and <strong>Jarom "Jay" Severson</strong> met at BYU, where Severson ran the chess club. Allebest enrolled at Stanford GSB while the two coded in Severson's attic. Six years of VC pitches all ended in rejection — chess was "not investable." Allebest put in roughly <strong>$500,000</strong> of his own money from his prior <em>Wholesale Chess</em> business <span class="badge verified">✓</span>. The site relaunched in <strong>May 2007</strong> with social-media promotion. <strong>By 2009 the company was profitable</strong>, a milestone that removed any urgency for outside capital and locked in the bootstrapped DNA that defines the company today <span class="badge verified">✓</span>.
+</p>
+
+<h4>The Queen's Gambit inflection (October 2020)</h4>
+<p>
+  Netflix's <em>The Queen's Gambit</em> structurally shifted Chess.com's TAM. Registered members surged from ~30M pre-pandemic to crossing 100M by late 2021 <span class="badge estimated">~</span>. For the first time, a 15-year-old bootstrapped consumer platform became visible to institutional investors.
+</p>
+
+<h3 id="s1-2">1.2 Corporate Structure</h3>
+<p>
+  The current operating parent is <strong>Chess Growthco LLC</strong>, a Delaware vehicle incorporated 22 August 2022 specifically to absorb Play Magnus Group <span class="badge verified">✓</span>. Operational HQ is nominally in Orem, Utah — the founders' BYU roots. The group remains fully private with no SEC filings and no public cap table.
+</p>
+
+<pre>Chess Growthco LLC  (Delaware — parent / acquisition vehicle)
+├── Chess.com LLC (operating platform — US)
+│   ├── ChessKid.com           (kid-safe sub-brand)
+│   └── Chessable Ltd (UK)     (course platform, via PMG)
+├── Chess24 GmbH               (Germany, via PMG 2022)
+├── Play Magnus AS             (Norway, via PMG 2022; wound down)
+└── [Print spun off to Quality Chess, 2024]</pre>
+
+<h4>Key leadership (structural)</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Name</th><th>Role</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><strong>Erik Allebest</strong></td><td>CEO &amp; Co-founder</td><td>Operational lead; face of every major announcement <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Jay Severson</strong></td><td>Co-founder / former CTO</td><td>Departed ~2024–25 <span class="badge estimated">~</span> — Fortune Oct 2025 refers to him as "former CTO"; no successor announced publicly</td></tr>
+<tr><td><strong>Danny Rensch</strong></td><td>Co-founder / Chief Chess Officer</td><td>IM title; brand face; memoir <em>Dark Squares</em> (Sep 2025) <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Alex Leibow</strong></td><td>VP Media &amp; Content</td><td>Ex-Snap (Head of Creator Editorial); hired ~2024 — first dedicated media exec at VP level <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<div class="stat-grid">
+  <div class="stat"><div class="v">664</div><div class="l">Q4 2025 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">668</div><div class="l">Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">11</div><div class="l">Open positions Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">100% remote</div><div class="l">No physical HQ</div></div>
+</div>
+
+<h3 id="s1-3">1.3 M&amp;A Timeline</h3>
+
+<div class="timeline">
+  <div class="timeline-item muted">
+    <div class="t-date">1994 → 2005</div>
+    <div class="t-title">Domain registered → bankruptcy auction</div>
+    <div class="t-body">chess.com sits inside Aficionado Inc.'s tutoring-software business. Allebest's friend wins the bankruptcy auction for $55K total.</div>
+  </div>
+  <div class="timeline-item muted">
+    <div class="t-date">May 2007 / 2009</div>
+    <div class="t-title">Site relaunches → Chess.com profitable</div>
+    <div class="t-body">ChessPark.com acquired in 2009 — user-base absorption and removal of the only social-chess competitor.</div>
+  </div>
+  <div class="timeline-item">
+    <div class="t-date">Oct 2013 → May 2018</div>
+    <div class="t-title">ChessVibes + Komodo engine</div>
+    <div class="t-body">Editorial capability (Peter Doggers in-house) plus proprietary engine (GM Larry Kaufman's team) brought inside.</div>
+  </div>
+  <div class="timeline-item">
+    <div class="t-date">Oct 2013 → 2021</div>
+    <div class="t-title">PMG builds the rival stack</div>
+    <div class="t-body">Play Magnus Group, founded by Magnus Carlsen and Espen Agdestein, rolls up Chess24 (2019), Chessable (2019), iChess (2020), New In Chess (2021), Everyman Chess + AimChess (2021).
+      <div class="t-detail">PMG IPO'd on Oslo Stock Exchange in Oct 2020 at ~NOK 796M (~$85.8M); Carlsen's stake diluted to 9.5%. By 2022 the post-IPO collapse and post-COVID normalisation left PMG distressed and acquirable.</div>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="t-date">Jan 2022</div>
+    <div class="t-title">General Atlantic — first external capital in 17 years</div>
+    <div class="t-body">Minority growth-equity investment; terms undisclosed; Houlihan Lokey advised. Catalyst: Queen's Gambit boom + need to finance the PMG acquisition.
+      <div class="t-detail">GA's portfolio includes Snap, Slack, TikTok, Airbnb — the pattern-match is high-growth consumer platforms. Allebest framed it as the first time the company took outside capital in 15+ years.</div>
+    </div>
+  </div>
+  <div class="timeline-item major">
+    <div class="t-date">Aug → Dec 2022</div>
+    <div class="t-title">Chess.com acquires Play Magnus Group — ~$82M</div>
+    <div class="t-body">Cash offer of NOK 13/share, ~NOK 800M (~$82M USD); unanimous PMG board recommendation. Closed 16 Dec 2022. Carlsen simultaneously signs as Chess.com ambassador.
+      <div class="t-detail">Assets acquired: Meltwater Champions Chess Tour, Chessable, Chess24, Play Magnus apps, Magnus Academy, Everyman Chess, New In Chess, iChess.net, GingerGM, AimChess. Net: the entire chess IP stack — for less than one year of Chess.com's likely revenue.</div>
+    </div>
+  </div>
+  <div class="timeline-item major">
+    <div class="t-date">Dec 2023</div>
+    <div class="t-title">Endeavor invests + WME signs Chess.com</div>
+    <div class="t-body">Minority strategic stake; Chess.com self-reports crossing $1B valuation. WME becomes exclusive global brand-partnership sales agent.
+      <div class="t-detail">Scope per public announcements: events advisory, media rights, content production, experiential marketing, brand licensing, WME-produced nonscripted content (documentaries), celebrity-centric chess moments. Chess.com effectively outsources its media business-development function to Endeavor.</div>
+    </div>
+  </div>
+  <div class="timeline-item">
+    <div class="t-date">Jan 2024</div>
+    <div class="t-title">Chess24 site shut down → traffic absorbed</div>
+    <div class="t-body">Chess24.com redirects to Chess.com. Brand later resurrected as a specialised event-coverage channel inside the Chess.com group (Q1 2026 board report explicitly states this).</div>
+  </div>
+  <div class="timeline-item">
+    <div class="t-date">Dec 2024</div>
+    <div class="t-title">Print operations spun off to Quality Chess</div>
+    <div class="t-body">New In Chess + Everyman/Popular Chess physical operations transferred to Jacob Aagaard's Quality Chess. Chess.com retains all digital rights via Chessable, plus digital rights to Quality Chess's 200+ title catalogue.
+      <div class="t-detail">Capital-discipline play, not a fire sale: shed operational complexity, keep digital IP, expand Chessable's catalogue.</div>
+    </div>
+  </div>
+</div>
+
+<h3 id="s1-4">1.4 Investment History</h3>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Date</th><th>Investor</th><th>Type</th><th>Amount</th><th>Implied valuation</th></tr></thead>
+<tbody>
+<tr><td>Pre-2022</td><td>Self-funded</td><td>Bootstrapped</td><td>~$500K (founder) <span class="badge estimated">~</span></td><td>N/A</td></tr>
+<tr><td>Dec 2021 (ann. Jan 2022)</td><td>General Atlantic</td><td>Minority growth equity <span class="badge verified">✓</span></td><td>Undisclosed</td><td>Undisclosed</td></tr>
+<tr><td>Aug → Dec 2022</td><td>(Chess.com as acquirer)</td><td>PMG M&amp;A</td><td>~$75–82M <span class="badge verified">✓</span></td><td>PMG ~$85.8M at 2020 IPO</td></tr>
+<tr><td>Dec 2023</td><td>Endeavor Group</td><td>Strategic minority <span class="badge verified">✓</span></td><td>Undisclosed</td><td>$1B+ self-reported <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<div class="callout">
+  <strong>Why this sequence matters.</strong> General Atlantic in 2022 brought growth-equity discipline (visible immediately in the PMG acquisition structure). Endeavor in 2023 brought entertainment monetisation expertise. The sequence is deliberate: capital + capability, not just capital. The cap table now looks like a pre-IPO consumer-platform with sports-media optionality — even though no IPO is announced.
+</div>
+
+<!-- ============================================================
+     SECTION 2
+     ============================================================ -->
+<h2 id="s2">§2 — Financial Performance</h2>
+
+<div class="callout note">
+  <strong>Material caveat — private company.</strong> Chess.com files no public financial statements. Quarterly board reports contain engagement and product metrics but <strong>zero revenue or profit data</strong>. Every figure in this section is either self-reported by the company (Latka, podcast interviews, press conferences) or reconstructed from third-party platforms (Sherwood, AInvest, CBInsights). No figure here has been independently audited. Confidence marks are conservative.
+</div>
+
+<h3 id="s2-1">2.1 Revenue Trajectory</h3>
+<p>
+  Allebest described the growth arc directly: <em>"We grew at basically the speed of cash — $1M → $2M → $4M → $5M → $7M → $10M → $12M → $17M → $35M → $80M → over $100M"</em> <span class="badge verified">✓</span>. The Queen's Gambit + COVID lockdowns triggered a step-change in late 2020. Allebest's framing for the years that followed: <em>"2021 was big, 2022 was flat, 2023 was bigger than 2021"</em> <span class="badge estimated">~</span>.
+</p>
+
+<div class="chart-card">
+  <div class="chart-title">Registered Members &amp; Daily Active Users — 2019 → Q1 2026</div>
+  <div class="chart-sub">Sources: Chess.com board reports (Q3 2025 → Q1 2026 ✓); press milestones for 2019–2024 (~)</div>
+  <div class="chart-box"><canvas id="chartMembersDau"></canvas></div>
+</div>
+
+<h4>Revenue table — ranges, not points</h4>
+<div class="tbl-wrap"><table class="sortable" id="tblRevenue">
+<thead><tr><th>Year</th><th>Low</th><th>High</th><th>Midpoint</th><th>Confidence</th></tr></thead>
+<tbody>
+<tr><td>2017</td><td>$8M</td><td>$12M</td><td>$10M</td><td><span class="badge estimated">~</span> Allebest progression</td></tr>
+<tr><td>2019</td><td>$20M</td><td>$35M</td><td>$28M</td><td><span class="badge estimated">~</span></td></tr>
+<tr><td>2020</td><td>$35M</td><td>$55M</td><td>$45M</td><td><span class="badge estimated">~</span> Pre-QG + partial boom</td></tr>
+<tr><td>2021</td><td>$70M</td><td>$100M</td><td>$85M</td><td><span class="badge estimated">~</span> QG + COVID peak</td></tr>
+<tr><td>2022</td><td>$70M</td><td>$100M</td><td>$85M</td><td><span class="badge estimated">~</span> Flat year — confirmed</td></tr>
+<tr><td>2023</td><td>$140M</td><td>$160M</td><td><strong>$150.7M</strong></td><td><span class="badge estimated">~</span> Latka self-reported</td></tr>
+<tr><td>2024</td><td>$155M</td><td>$210M</td><td>$175M</td><td><span class="badge unverified">?</span> No confirmed figure</td></tr>
+<tr><td>2025E</td><td>$180M</td><td>$270M</td><td>$220M</td><td><span class="badge unverified">?</span> AInvest projection</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s2-2">2.2 Revenue Structure</h3>
+<p>
+  Danny Rensch confirmed the breakdown to Adweek in 2025: <strong>~88% subscriptions, ~10% advertising, ~2% sponsorships</strong> <span class="badge estimated">~</span>. The 2% sponsorship line is the lever WME and Leibow are now pulling — Rensch guided "a small eight figures or more" of incremental advertising in the buildout.
+</p>
+
+<div class="chart-card">
+  <div class="chart-title">Revenue Mix — $150M base</div>
+  <div class="chart-sub">Source: Rensch to Adweek 2025 (~)</div>
+  <div class="chart-box" style="height:280px;"><canvas id="chartRevMix"></canvas></div>
+</div>
+
+<h4>Subscription tiers</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Plan</th><th>Annual</th><th>Monthly equiv.</th><th>Differentiator</th></tr></thead>
+<tbody>
+<tr><td>No Ads</td><td>~$12/yr</td><td>~$1</td><td>Ad removal only — launched 2025 <span class="badge verified">✓</span></td></tr>
+<tr><td>Gold</td><td>$50/yr</td><td>~$4.17</td><td>Unlimited puzzles, lessons, bots, no ads</td></tr>
+<tr><td>Platinum</td><td>$80/yr</td><td>~$6.67</td><td>Gold + unlimited game review</td></tr>
+<tr><td>Diamond</td><td>$119/yr</td><td>~$9.92</td><td>Platinum + coach explanations + unlimited insights</td></tr>
+<tr><td>Diamond Friends &amp; Family</td><td>$199.99/yr</td><td>~$2.78/seat</td><td>Up to 6 seats; 75% effective discount <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+<p>
+  Diamond at $119/yr accounts for "more than half" of the ~2 million paying subscribers <span class="badge estimated">~</span>, implying Diamond subscribers ≥ 1 million. <strong>Premium pricing was unchanged from 2009 to September 2022 — a 13-year freeze</strong> <span class="badge verified">✓</span>. That alone tells you the monetisation ceiling has been self-imposed.
+</p>
+
+<h3 id="s2-3">2.3 Unit Economics</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">$3.95</div><div class="l">ARPU / MAU / yr <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">$67.7</div><div class="l">ARPPU / paying user / yr <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">~5.1%</div><div class="l">Conversion (MAU → paid) <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">~$0.35</div><div class="l">Content-as-CAC / new reg <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">~30×</div><div class="l">LTV : CAC base case <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">~$224K</div><div class="l">Revenue / employee <span class="badge estimated">~</span></div></div>
+</div>
+<p>
+  Chess.com runs <strong>zero paid user acquisition</strong> <span class="badge estimated">~</span>. The chess content ecosystem — Nakamura, GothamChess, Carlsen appearances — is the functional equivalent of paid acquisition. The ~30× LTV:CAC is exceptional even for best-in-class SaaS (benchmark: 10× = excellent), although the CAC denominator is inherently fuzzy because "content cost as acquisition spend" is not formally tracked.
+</p>
+
+<h3 id="s2-4">2.4 Implied Valuation</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Revenue assumption</th><th>Multiple</th><th>Implied valuation</th></tr></thead>
+<tbody>
+<tr><td>$150M</td><td>8×</td><td>$1.2B</td></tr>
+<tr><td>$150M</td><td>12×</td><td>$1.8B</td></tr>
+<tr><td>$200M</td><td>8×</td><td>$1.6B</td></tr>
+<tr><td>$200M</td><td>12×</td><td>$2.4B</td></tr>
+<tr><td>$220M</td><td>10×</td><td>$2.2B</td></tr>
+</tbody>
+</table></div>
+<p>
+  The only publicly stated valuation is self-reported: <strong>$1B+ in 2023</strong> <span class="badge verified">✓</span>. Consumer platforms with strong subscription bases trade at 8–15× revenue in 2024 private-market conditions. Chess.com's bootstrapped structure, profitability since 2009, and absence of capital-hungry growth metrics support a premium versus burn-heavy peers. <strong>$1B floor is confirmed; $2–3B upper bound is plausible but unconfirmed.</strong>
+</p>
+
+<h3 id="s2-5">2.5 Profitability</h3>
+<blockquote>
+  "We have been profitable basically since the very beginning." — Erik Allebest, Neon Fund podcast <span class="badge verified">✓</span>
+</blockquote>
+<p>
+  Profitable every year since 2009. No EBITDA disclosed. The structural signals are unambiguous: zero paid UA, $224K revenue per employee (~20% above SaaS median), no physical real estate, PMG acquisition funded from internal operating cash. <strong>The "profitable since 2009" claim is a double-edged moat:</strong> it proves the business model works at any scale, but it also means the team has never been forced to optimise monetisation aggressively. That is now changing — Endeavor, Leibow, the 2022 price hike (first in 13 years), the No-Ads tier, and the Family Plan are all manifestations of Chess.com finally pressing on the accelerator.
+</p>
+
+<!-- ============================================================
+     SECTION 3
+     ============================================================ -->
+<h2 id="s3">§3 — Audience &amp; Platform Metrics</h2>
+
+<h3 id="s3-1">3.1 Audience Size</h3>
+<p>
+  Chess.com grew steadily for its first 13 years, then doubled its entire user base in the 18 months from mid-2020 — the pandemic + Queen's Gambit inflection. Growth has remained structurally elevated since, with India emerging as the second primary driver from late 2024.
+</p>
+
+<div class="chart-card">
+  <div class="chart-title">New registrations &amp; DAU — quarterly board-report cadence</div>
+  <div class="chart-sub">Q3 2025 → Q1 2026, verified directly from Chess.com board reports <span class="badge verified">✓</span></div>
+  <div class="chart-box"><canvas id="chartRegistrations"></canvas></div>
+</div>
+
+<div class="callout">
+  <strong>Q3 2025 = peak YoY quarter.</strong> New registrations grew +30% YoY in Q3 2025 (11.4M new users). Growth decelerated to +26% in Q4 2025 and +24% in Q1 2026. This is normalisation from an exceptionally high comparison base (Q4 2024 had Gukesh WCC + Tata Steel India + Magnus meetup simultaneously), not structural decline. DAU still grew +17.7% YoY in Q1 2026 on a larger base.
+</div>
+
+<h3 id="s3-2">3.2 Engagement</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">2.6B</div><div class="l">Games / quarter Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">~28M</div><div class="l">Games / day <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">360+</div><div class="l">Games / second <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">~90%</div><div class="l">Widget D1 return <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">515B+</div><div class="l">Monthly server requests <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">99.93%</div><div class="l">Core uptime Q1 2026 <span class="badge verified">✓</span></div></div>
+</div>
+
+<h4>SimilarWeb engagement — Chess.com vs Lichess (Apr 2026)</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Metric</th><th>Chess.com</th><th>Lichess</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Avg visit duration</td><td>14:27</td><td><strong>15:07</strong></td><td>SimilarWeb <span class="badge estimated">~</span></td></tr>
+<tr><td>Pages per visit</td><td>19.24</td><td><strong>21.85</strong></td><td>SimilarWeb <span class="badge estimated">~</span></td></tr>
+<tr><td>Bounce rate</td><td>18.38%</td><td>18.21%</td><td>SimilarWeb <span class="badge estimated">~</span></td></tr>
+</tbody>
+</table></div>
+<p>
+  Lichess wins per-session engagement on web. <strong>But SimilarWeb captures web only.</strong> Chess.com has 17.3M+ combined app installs per quarter; Lichess has a notably smaller app footprint. The per-session web edge for Lichess is real but understates Chess.com's true engagement advantage at the ecosystem level.
+</p>
+
+<h3 id="s3-3">3.3 Geography</h3>
+
+<h4>Top countries by web traffic (SimilarWeb, Apr 2026)</h4>
+<div class="tbl-wrap"><table class="sortable" id="tblGeo">
+<thead><tr><th>Rank</th><th>Country</th><th data-sort="number">Traffic share</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>United States</td><td>25.52%</td><td>Dominant; largest absolute member base</td></tr>
+<tr><td>2</td><td>India</td><td>8.18%</td><td>Fastest-growing; Gukesh WCC catalyst</td></tr>
+<tr><td>3</td><td>United Kingdom</td><td>4.86%</td><td>—</td></tr>
+<tr><td>4</td><td>France</td><td>3.82%</td><td>Strong OTB culture</td></tr>
+<tr><td>5</td><td>Brazil</td><td>3.74%</td><td>Key LATAM market</td></tr>
+<tr><td>6–10</td><td>Long tail</td><td>53.88%</td><td>Germany, Russia, Indonesia, Spain, Philippines (estimated mix)</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout">
+  <strong>India as growth vector.</strong> Three compounding events explain the India story: (1) <strong>Gukesh's WCC win in Dec 2024</strong> — youngest-ever world champion, ~10M concurrent viewers at peak; (2) <strong>India Olympiad gold in Aug 2024</strong>; (3) <strong>Anand and Tania Sachdev launched as platform coaches in Feb 2026</strong> with voice commentary. Q1 2026 board report: "Viswanathan Anand assigned to new Indian users" — a clear product-level India localisation. 1M+ users using the coaches feature by Q1 2026 <span class="badge verified">✓</span>.
+</div>
+
+<h3 id="s3-4">3.4 Demographics &amp; Segments</h3>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Segment</th><th>Rating range</th><th>Share of active</th><th>Profile</th></tr></thead>
+<tbody>
+<tr><td>Casual / Beginner</td><td>&lt; 1000</td><td><strong>85%+</strong></td><td>Puzzles, openings, streamer content; PogChamps audience</td></tr>
+<tr><td>Intermediate / Club</td><td>1000–1600</td><td>~13%</td><td>Game analysis, tournament commentary</td></tr>
+<tr><td>Advanced</td><td>1600+</td><td>~1.3%</td><td>Instructional depth; Twitter-active</td></tr>
+<tr><td>Spectators</td><td>—</td><td>Not quantified</td><td>Memes, viral moments; don't self-identify as players</td></tr>
+</tbody>
+</table></div>
+<p>
+  This is the most strategically important segmentation in the report. The <strong>85%+ casual base is Chess.com's moat versus Lichess:</strong> casual users need onboarding, gamification, and content, all of which Chess.com provides and Lichess structurally does not prioritise.
+</p>
+
+<h4>Gender</h4>
+<p>
+  SimilarWeb panel data (Apr 2026): ~65.9% male / ~34.1% female. Q1 2026 board report states the platform is "focusing on IRL content and UGC formats targeting women audiences" <span class="badge verified">✓</span> — the 34% female web share is the gap Chess.com is actively trying to narrow.
+</p>
+
+<h3 id="s3-5">3.5 App vs Web</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Metric</th><th>Q3 2025</th><th>Q4 2025</th><th>Q1 2026</th></tr></thead>
+<tbody>
+<tr><td>Apple installs</td><td>7.1M</td><td>7.9M</td><td><strong>8.6M</strong> (+14% YoY)</td></tr>
+<tr><td>Google installs</td><td>7.8M</td><td>7.7M</td><td><strong>8.7M</strong> (+15% YoY)</td></tr>
+<tr><td>Combined</td><td>14.9M</td><td>15.6M</td><td><strong>17.3M</strong></td></tr>
+<tr><td>Apple rating</td><td>4.8 / 5 (2.1M reviews)</td><td>4.8 / 5</td><td>4.8 / 5</td></tr>
+<tr><td>Google rating</td><td>4.7 / 5 (2.9M reviews)</td><td>4.7 / 5</td><td>4.7 / 5</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout">
+  <strong>App is the retention engine.</strong> 17.3M quarterly installs with 4.8/4.7 ratings. Home-screen presence creates daily touchpoints web-only competitors cannot match. Chessable's +50% retention lift after onboarding overhaul (Q4 2025) confirms Chess.com is actively optimising the funnel, not just acquisition.
+</div>
+
+<!-- ============================================================
+     SECTION 4
+     ============================================================ -->
+<h2 id="s4">§4 — Media Ecosystem</h2>
+
+<p>
+  Chess.com's media ecosystem is the primary CAC multiplier and the primary defence against Lichess. Social-media metrics are falling YoY (down to -75% interactions at trough), but this is deliberate redistribution, not flywheel collapse. The pivot is from event-coverage-in-social to IRL + documentary + esports + UGC.
+</p>
+
+<h3 id="s4-1">4.1 Owned YouTube Channels</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Channel</th><th>Subscribers</th><th>Total views</th><th>Launched</th><th>Conf.</th></tr></thead>
+<tbody>
+<tr><td>Chess.com (main) @chess</td><td>~2.73M</td><td>~1.62B</td><td>Jul 2007</td><td><span class="badge estimated">~</span> Social Blade</td></tr>
+<tr><td>ChessKid</td><td>~160K (EN + ES)</td><td>—</td><td>—</td><td><span class="badge verified">✓</span> Board reports</td></tr>
+<tr><td>Chess.com Clips</td><td>?</td><td>?</td><td>?</td><td><span class="badge unverified">?</span> Not verified as standalone</td></tr>
+</tbody>
+</table></div>
+<p>
+  Chess.com main is the 18-year flagship — but it is materially smaller than its affiliated streamers. GothamChess at ~7.57M, Hikaru at ~3.01M, Anna Cramling at ~1.66M. <strong>Chess.com is the platform; the giants are around it.</strong>
+</p>
+
+<h4>Top YouTube videos 2025 (verified)</h4>
+<ul>
+  <li><strong>18.4M views</strong> — "Professional Chess is VERY STRESSFUL" (#1 video 2025)</li>
+  <li><strong>12.6M views</strong> — "Magnus Carlsen is SURPRISED By 1600-RATED 3-YEAR-OLD INDIAN TALENT"</li>
+  <li><strong>10.7M views</strong> — "HOW FAST Do Super Grandmaster CALCULATE"</li>
+</ul>
+
+<h3 id="s4-2">4.2 Twitch &amp; Broadcast</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">~1.24M</div><div class="l">Twitch.tv/chess followers <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">72.3M</div><div class="l">Twitch hours all-time <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">3.9M</div><div class="l">Broadcast hours Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">135M</div><div class="l">Total broadcast views 2025 <span class="badge verified">✓</span></div></div>
+</div>
+
+<h4>Top broadcast events 2025</h4>
+<div class="tbl-wrap"><table class="sortable" id="tblBroadcast">
+<thead><tr><th>Event</th><th data-sort="number">Peak viewers</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Esports World Cup 2025 (final)</td><td>259427</td><td>#1 chess stream of 2025 <span class="badge verified">✓</span></td></tr>
+<tr><td>Norway Chess 2025</td><td>251184</td><td>—</td></tr>
+<tr><td>Freestyle Chess — Paris</td><td>135322</td><td>—</td></tr>
+<tr><td>Tata Steel 2025</td><td>125707</td><td>—</td></tr>
+<tr><td>Speed Chess Championship Q1 2026 (London Live)</td><td>107000</td><td>43.1K avg; ~1,500 tickets sold out <span class="badge verified">✓</span></td></tr>
+<tr><td>FIDE WCC 2024 (Gukesh–Ding)</td><td>517897</td><td>Q4 2024 — anomalous baseline <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s4-3">4.3 Contracted Streamers &amp; Ambassadors</h3>
+<div class="callout risk">
+  <strong>Key fact.</strong> No streamer except Magnus Carlsen is bound to Chess.com by an <strong>exclusive contract</strong>. Relationships are held by event prize money (Titled Tuesday $30K+ weekly) and goodwill. This is a material platform risk — Hikaru's Kick deal in 2023 was the first public test, and Chess.com handled it by partnering rather than escalating.
+</div>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Streamer</th><th>Reach</th><th>Hours watched 2025</th><th>Relationship</th></tr></thead>
+<tbody>
+<tr><td><strong>Hikaru Nakamura</strong> (GM)</td><td>3.01M YouTube · 2M Twitch</td><td><strong>5.3M h</strong> (Twitch + Kick)</td><td>Lead partner; event host; non-exclusive</td></tr>
+<tr><td><strong>GothamChess</strong> (Levy Rozman, IM)</td><td>~7.57M YouTube</td><td>—</td><td>Event commentator; "vs The World" 225K players Q4 2025</td></tr>
+<tr><td><strong>BotezLive</strong> (Alexandra + Andrea)</td><td>1.32M Twitch · 1.81M YouTube</td><td>—</td><td>Non-exclusive; PogChamps host</td></tr>
+<tr><td><strong>Anna Cramling</strong> (WFM)</td><td>~1.66M YouTube</td><td>—</td><td>Chessable course (1.d4 bestseller Q4 2025); Panda esports</td></tr>
+<tr><td><strong>Magnus Carlsen</strong></td><td>~6M chess followers cross-platform</td><td>—</td><td>Only named ambassador with equity-adjacent ties (PMG)</td></tr>
+<tr><td><strong>Viswanathan Anand</strong></td><td>Not a streamer</td><td>—</td><td>Formal ambassador; default coach for new Indian users <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s4-4">4.4 Social Footprint — Chess.com vs Lichess</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Platform</th><th>Chess.com</th><th>Lichess</th><th>Ratio</th></tr></thead>
+<tbody>
+<tr><td>Instagram</td><td>~2M</td><td>~2K (unofficial only)</td><td><strong>~1000×</strong></td></tr>
+<tr><td>TikTok</td><td>~2.2M</td><td>None</td><td>n/a</td></tr>
+<tr><td>X / Twitter</td><td>~703K</td><td>~142K</td><td>~5×</td></tr>
+<tr><td>YouTube (main)</td><td>~2.73M</td><td>~64K</td><td>~43×</td></tr>
+</tbody>
+</table></div>
+
+<h4>Chess.com social — YoY collapse and explicit pivot</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Quarter</th><th>Impressions</th><th>Interactions</th><th>New followers</th></tr></thead>
+<tbody>
+<tr><td>Q3 2025</td><td>573M</td><td>14M</td><td>365K · interactions -38% YoY</td></tr>
+<tr><td>Q4 2025</td><td>485M</td><td>14M</td><td>266K · <strong>-45% / -75% / -73%</strong> YoY</td></tr>
+<tr><td>Q1 2026</td><td>488M</td><td>11M</td><td>261K · -34% / -57% / -46% YoY</td></tr>
+</tbody>
+</table></div>
+
+<blockquote>
+  "Transitioning event coverage to Chess24; Chess.com focusing on IRL content and UGC formats targeting women audiences." — Chess.com Q1 2026 Board Report <span class="badge verified">✓</span>
+</blockquote>
+
+<p>
+  <strong>The collapse is the strategy.</strong> Chess24, shut down as a standalone site in Jan 2024, is being resurrected as a specialised event-coverage channel — so Chess.com main can be repositioned for casual, women, and UGC audiences. The flywheel is being differentiated by audience segment, not abandoned.
+</p>
+
+<h3 id="s4-6">4.6 ChessKid — Sub-brand</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">14.8M</div><div class="l">Registered users Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">838K</div><div class="l">MAU Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">+36%</div><div class="l">QAU YoY Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">160K+</div><div class="l">YouTube subs (EN + ES) <span class="badge verified">✓</span></div></div>
+</div>
+<p>
+  ChessKid is the top-of-funnel B2B vehicle — school programs, teachers, child-safe interface. Lichess has no equivalent. The +36% QAU acceleration in Q1 2026 is the sharpest engagement inflection in the entire source pack and reflects the Stars &amp; Gems gamified avatar economy launched in Q3 2025.
+</p>
+
+<h3 id="s4-7">4.7 Chessable — Sub-brand</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">630K</div><div class="l">Active users Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">527K</div><div class="l">New users Q1 2026 (+268% YoY) <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">33M</div><div class="l">Variations studied Q1 2026 <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">1,000+</div><div class="l">Courses</div></div>
+</div>
+<p>
+  MoveTrainer® spaced-repetition learning, acquired through PMG in Dec 2022. Authors include Carlsen, Anand, Polgar, Cramling, Aman Hambleton. The Q4 2025 onboarding redesign delivered +50% retention lift; the Q1 2026 results validate that as durable. Lichess has no comparable product — this is a direct revenue moat.
+</p>
+
+<!-- ============================================================
+     SECTION 5
+     ============================================================ -->
+<h2 id="s5">§5 — Marketing &amp; Growth</h2>
+
+<p>
+  The central question this section answers: <em>why is Chess.com professionalising its marketing function now</em>, after 17 years on a pure organic model. Five converging forces all fall inside a 30-month window.
+</p>
+
+<div class="callout">
+  <strong>The five forces, in order.</strong>
+  <ol style="margin-top:8px;margin-bottom:0;">
+    <li><strong>Alex Leibow hire (2024)</strong> — first dedicated VP-level media exec, ex-Snap creator editorial lead.</li>
+    <li><strong>Endeavor / WME investment (Dec 2023)</strong> — exclusive global brand-partnership sales agency; entertainment-industry Rolodex.</li>
+    <li><strong>Social media YoY collapse</strong> — Q4 2025 trough at -75% interactions; explicit pivot in board reports.</li>
+    <li><strong>Magnus Take Take Take (Apr 2026)</strong> — competitive urgency around audience bond, retention.</li>
+    <li><strong>Esports World Cup integration (2025–2027)</strong> — 259K peak viewers; Titled Tuesday restructured as EWC feeder.</li>
+  </ol>
+</div>
+
+<h3 id="s5-1">5.1 Paid Channels — The Zero-UA Anti-Pattern</h3>
+<p>
+  Chess.com runs <strong>effectively zero paid user acquisition</strong>. This is confirmed across all reviewed board reports: no paid media line appears. Winmo lists "unknown" spend; no detectable large-scale Google or Meta campaigns. AdClarity / SpyFu show only presence, not budget.
+</p>
+
+<div class="tbl-wrap"><table>
+<thead><tr><th>Dimension</th><th>Chess.com (zero paid UA)</th><th>Typical app at 9.7M DAU</th></tr></thead>
+<tbody>
+<tr><td>CAC</td><td>~$0 direct / organic</td><td>$5–50+ per install</td></tr>
+<tr><td>LTV : CAC</td><td>~30× (§2 estimate)</td><td>3–5× at scale</td></tr>
+<tr><td>Growth dependency</td><td>Content quality, viral moments, SEO</td><td>Ad budget, algorithm optimisation</td></tr>
+<tr><td>Fragility</td><td>Low — no algorithm auction risk</td><td>High — platform policy / CPM inflation</td></tr>
+<tr><td>Ceiling risk</td><td>Viral-moment dependency; social decline</td><td>Budget constraint / CPM compression</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s5-2">5.2 SEO — The Dominant Organic Machine</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">81.9M</div><div class="l">SEO clicks Q1 2026 (+4.5% YoY) <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">489M</div><div class="l">SEO impressions (+53% YoY) <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">60,000+</div><div class="l">Keywords ranked #1–10 (2023) <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">56</div><div class="l">Languages with dedicated URL structure</div></div>
+</div>
+<p>
+  Four compounding pillars: <strong>localisation at scale</strong> (56 languages, one locale alone = 12M annual visits), <strong>evergreen content depth</strong> (glossary, openings, 80K+ player profiles), <strong>real-time event integration</strong>, and <strong>UGC + community signals</strong>. The risk signal: news readership is down -61.8% YoY in Q1 2026 — pure SEO is growing, editorial journalism is declining.
+</p>
+
+<h3 id="s5-3">5.3 Influencer Strategy — From Informal to Systematic</h3>
+<p>
+  Three phases. Pre-2020: organic alignment. 2020–2022: Queen's Gambit boom forces formalisation. 2023–present: <strong>systematic institutional model</strong> — Choose Your Coach, "vs The World" events, CoachChamps. Chess.com is now the production company; top creators are talent <em>and</em> co-distribution infrastructure.
+</p>
+
+<h4>"Choose Your Coach" — launched Q3 2025</h4>
+<p>
+  ElevenLabs voice cloning. Users pick Magnus, Hikaru, Levy, the Botez sisters, Danny Rensch, or Anna Cramling as their coach. The chosen voice appears in Game Review, Puzzles, Lessons, and Play Coach. <strong>This converts influencer relationships into a product feature</strong> — retention + marketing in one.
+</p>
+
+<h4>"vs The World" — recurring co-creation format</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Event</th><th>Participants</th><th>Quarter</th></tr></thead>
+<tbody>
+<tr><td>Magnus Carlsen vs The World</td><td>143,564</td><td>Q1 2025</td></tr>
+<tr><td>GothamChess vs The World</td><td><strong>225,054 — world record</strong></td><td>Q3–Q4 2025</td></tr>
+<tr><td>Judit Polgar vs The World</td><td>77,000+</td><td>Q1 2026</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s5-4">5.4 Viral Moments — Traffic Overlay</h3>
+
+<div class="chart-card">
+  <div class="chart-title">Viral events vs broadcast viewership 2024–2026</div>
+  <div class="chart-sub">Peak viewers (bars, left axis) vs new registrations YoY % (line, right axis) <span class="badge verified">✓</span></div>
+  <div class="chart-box"><canvas id="chartViral"></canvas></div>
+</div>
+
+<p>
+  Chess.com's organic traffic does not spike sharply from a single moment and decay. Cultural events create <strong>step-changes in the baseline</strong>. Queen's Gambit (Oct 2020) permanently shifted the monthly registrations floor; Gukesh WCC 2024 opened a new India-sized baseline. 2025–2026 lacks a Queen's-Gambit-magnitude single spike — which is exactly why Chess.com is engineering recurring moments (BlitzChamps, "vs The World", EWC) rather than waiting for organic ones.
+</p>
+
+<h3 id="s5-5">5.5 Tournaments as Marketing</h3>
+<p>
+  Chess.com does not simply sponsor tournaments — it controls broadcast, production, narrative, and brand integration for its owned events. Each event is simultaneously: (a) product showcase, (b) content production, (c) community engagement, (d) sponsor-revenue vehicle, and (e) talent retention.
+</p>
+
+<div class="tbl-wrap"><table class="sortable" id="tblTournaments">
+<thead><tr><th>Tournament</th><th data-sort="number">Prize fund $</th><th>Sponsor / Host</th><th data-sort="number">Peak viewers</th></tr></thead>
+<tbody>
+<tr><td>FIDE WCC 2024 (Gukesh–Ding)</td><td>2700000</td><td>Google (title) · Chess.com media</td><td>517897</td></tr>
+<tr><td>FIDE Candidates 2024</td><td>500000</td><td>FIDE</td><td>337656</td></tr>
+<tr><td>Champions Chess Tour × EWC 2025</td><td>1500000</td><td>Esports World Cup</td><td>259353</td></tr>
+<tr><td>Speed Chess Championship 2025</td><td>250000</td><td>Chess.com (London 180 Studios)</td><td>107000</td></tr>
+<tr><td>Speed Chess Championship 2024</td><td>150000</td><td>Chess.com</td><td>223229</td></tr>
+<tr><td>CCT 2025–26 per event</td><td>250000</td><td>ChessUp, Lofi Girl, Meetup, Anichess, Secretlab</td><td>0</td></tr>
+<tr><td>BlitzChamps IV / V</td><td>100000</td><td>NFL Legends · Chess.com</td><td>0</td></tr>
+<tr><td>Titled Tuesday (weekly)</td><td>3000</td><td>Chess.com</td><td>17300</td></tr>
+<tr><td>Perplexity Comet Open</td><td>200000</td><td>Perplexity (Nakamura won $45K)</td><td>0</td></tr>
+</tbody>
+</table></div>
+<p style="font-family:var(--sans);font-size:12px;color:var(--ink-3);">Click any column header to sort. "0" peak viewers = not a broadcast event or no peak data.</p>
+
+<div class="callout">
+  <strong>The Esports World Cup partnership is the single most structurally significant marketing development of 2025.</strong> 259K peak viewers proves chess content can compete in the esports mainstream. The 2026 EWC qualification cycle restructuring hardwires Titled Tuesday + SCC + Chess.com Global Championship into EWC infrastructure permanently. This creates a recurring audience pipeline that did not exist before 2025.
+</div>
+
+<!-- ============================================================
+     SECTION 6
+     ============================================================ -->
+<h2 id="s6">§6 — Sponsorships &amp; Partnerships</h2>
+
+<p>
+  This is the highest-strategic-value section. Chess.com runs a tiered model: (1) brand sponsorships attached to events, (2) platform-level integrations (Revolut, ChessUp), and (3) title sponsorships across the Champions Chess Tour. Contract values are not disclosed.
+</p>
+
+<h3 id="s6-1">6.1 Incoming Sponsors</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Brand</th><th>Category</th><th>Type</th><th>Activation</th><th>Year</th></tr></thead>
+<tbody>
+<tr><td><strong>Google</strong></td><td>Big Tech</td><td>WCC 2024 title sponsor</td><td>Google World Chess Championship — direct deal with FIDE, Chess.com media</td><td>2024 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Perplexity AI</strong></td><td>AI / Tech</td><td>Tournament naming sponsor</td><td>$200K Comet Open; Nakamura won $45K</td><td>2025 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Revolut</strong></td><td>Fintech</td><td>Platform benefit partner</td><td>Chess.com Premium bundled in Revolut Metal / Ultra plans across 8 EU markets</td><td>2024–25 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Zenni Optical</strong></td><td>Consumer / Health</td><td>Event broadcast sponsor</td><td>Official eyewear partner of SCC, CCT, EWC quals; co-branded content + 15% user discount</td><td>2025 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>ChessUp / Bryght Labs</strong></td><td>Hardware</td><td>Product integration</td><td>ChessUp 2 smart board fully integrated with Chess.com</td><td>2025 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Neuro</strong></td><td>Energy / CPG</td><td>Brand sponsor</td><td>Q4 2025 partner; details not public</td><td>Q4 2025 <span class="badge estimated">~</span></td></tr>
+<tr><td><strong>F1 / Formula 1</strong></td><td>Sports</td><td>Brand sponsor</td><td>Cross-promotional; mainstream-fan overlap play</td><td>Q4 2025 <span class="badge estimated">~</span></td></tr>
+<tr><td><strong>SXSW</strong></td><td>Culture / Event</td><td>Event appearance</td><td>Q1 2026 partner; panel / sponsored content</td><td>Q1 2026 <span class="badge estimated">~</span></td></tr>
+<tr><td><strong>EWC Foundation</strong></td><td>Esports / Saudi</td><td>3-year tournament partnership</td><td>CCT feeds into EWC; $1.5M chess prize pool at EWC 2025</td><td>Dec 2024 <span class="badge verified">✓</span></td></tr>
+<tr><td><strong>Esports Nations Cup</strong></td><td>Esports / Saudi</td><td>Official publisher</td><td>ENC 2026 Riyadh; 128-player field; Chess.com runs regional quals</td><td>Nov 2025 <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s6-2">6.2 Outgoing — Prize Funds Chess.com Funds</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Event</th><th>Prize pool</th><th>Frequency</th></tr></thead>
+<tbody>
+<tr><td>Champions Chess Tour</td><td>$300K → $500K / season; $250K per event in 2025–26</td><td>Seasonal</td></tr>
+<tr><td>Speed Chess Championship</td><td>$250K (2025)</td><td>Annual</td></tr>
+<tr><td>Titled Tuesday Grand Prix</td><td>$3K per event + $30K per split (~$246K/yr)</td><td>Weekly</td></tr>
+<tr><td>BlitzChamps</td><td>$100K+ (NFL crossover)</td><td>Annual</td></tr>
+<tr><td>Women's SCC</td><td>Inside SCC budget; Ju Wenjun 2× consecutive winner</td><td>Annual</td></tr>
+<tr><td>PogChamps 6</td><td>Celebrity invitational</td><td>Annual</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s6-3">6.3 B2B Partnerships</h3>
+<p>
+  <strong>ChessKid.com is Chess.com's B2B vehicle</strong> for chess academies, school districts, and national federations. Free curriculum is the top-of-funnel loss-leader; paid school accounts are the conversion. ChessKid runs OnePageCRM for B2B sales — the motion is structured, not ad-hoc. ChessUp 2 hardware integration and Chessable cross-sell inside Chess.com round out the B2B perimeter.
+</p>
+
+<h3 id="s6-4">6.4 FIDE — Extended Block</h3>
+
+<h4>Tension axes (4)</h4>
+<ol>
+  <li><strong>Who controls the player and the audience?</strong> Carlsen's $200 jeans fine at the 2024 NY World Rapid &amp; Blitz crystallised this — Chess.com, via Freestyle, was structurally on Carlsen's side.</li>
+  <li><strong>Broadcast rights and revenue sharing.</strong> Chess.com broadcasts FIDE events via Chess24 channels. Terms not public. Google's WCC 2024 title was a FIDE contract; Chess.com cannot monetise that title sponsorship.</li>
+  <li><strong>Data and rating sovereignty.</strong> FIDE keeps ratings; Chess.com runs its own. No formal data-sharing agreement in the public record.</li>
+  <li><strong>Fair-play governance.</strong> Chess.com's Proctor is proprietary and not FIDE-endorsed for OTB. Titled account closures (Q3 2025: 61) are unilateral Chess.com decisions.</li>
+</ol>
+
+<h4>FIDE Elections 2026 — Samarkand, 20–27 September</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Candidate</th><th>Country</th><th>Status</th><th>Chess.com posture</th></tr></thead>
+<tbody>
+<tr><td><strong>Arkady Dvorkovich</strong> (incumbent)</td><td>Russia</td><td>Seeking 3rd term; running with Anand as Deputy</td><td>Pragmatic — cooperated on Freestyle after public conflict; accused of campaign-rule violations</td></tr>
+<tr><td><strong>Viswanathan Anand</strong></td><td>India</td><td>Running as Dvorkovich's Deputy President</td><td><strong>Chess.com ambassador AND on the FIDE incumbent ticket</strong> — the structural dual-loyalty signal</td></tr>
+<tr><td><strong>Enyonam Sewa Fumey</strong> (challenger)</td><td>Togo</td><td>Reform agenda; Stuart Fancy as running mate</td><td>Platform-friendly by default</td></tr>
+<tr><td><strong>Kirsan Ilyumzhinov</strong></td><td>Russia</td><td>OFAC-sanctioned; long-shot; Dvorkovich: "no chance for two Russian candidates"</td><td>Implausible</td></tr>
+<tr><td><strong>Wadim Rosenstein</strong></td><td>Germany</td><td>Rumoured; no formal announcement as of May 2026</td><td>Unknown</td></tr>
+<tr><td><strong>Malcolm Pein</strong></td><td>England</td><td>Expressed interest; no formal campaign</td><td>Unknown</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout">
+  <strong>Bottom line.</strong> Chess.com's election play is <strong>Anand-as-proxy</strong>. If Dvorkovich wins with Anand as Deputy, Chess.com gains a friendly face at the FIDE executive level without explicit confrontation. If a reform candidate wins, Chess.com (the dominant online platform) is welcomed openly. Chess.com wins either way — unless Ilyumzhinov returns, which is implausible given OFAC sanctions.
+</div>
+
+<h4>Freestyle Chess as parallel circuit</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Date</th><th>Event</th></tr></thead>
+<tbody>
+<tr><td>Jan 21 2025</td><td>FIDE: Freestyle "World Championship" creates "unavoidable divisions"; legal-action threat</td></tr>
+<tr><td>Feb 4 2025</td><td>Carlsen: "Will you resign?" — open challenge to Dvorkovich; Buettner publishes open letter</td></tr>
+<tr><td>Mid-2025</td><td>Private back-channel negotiation</td></tr>
+<tr><td>Jan 7 2026</td><td><strong>FIDE and Freestyle Chess sign formal cooperation agreement</strong> — FIDE blinks</td></tr>
+<tr><td>Feb 13–15 2026</td><td>First official FIDE Freestyle Chess WCC, Weissenhaus; Carlsen wins his 21st world title</td></tr>
+</tbody>
+</table></div>
+
+<p>
+  <strong>FIDE blinked.</strong> The 2025 legal threat was never acted upon; in 2026 FIDE legitimised the Freestyle title. Chess.com / Freestyle ran the Kasparov PCA playbook successfully — because Chess.com's online platform creates a distribution channel FIDE cannot replicate.
+</p>
+
+<h3 id="s6-5">6.5 Other Strategic Partnerships</h3>
+
+<h4>Endeavor / WME — December 2023</h4>
+<p>
+  Minority equity in Chess.com plus WME as exclusive brand-partnership sales agency. Scope: events, media rights, content production, experiential marketing, brand licensing, documentary content, "celebrity-centric chess moments." BlitzChamps NFL, CHESS the Musical, Wembanyama / Derrick Rose Chesstival, Steve Aoki bot — all bear WME's fingerprint.
+</p>
+
+<h4>Saudi Esports (EWC + ENC)</h4>
+<p>
+  Two related Saudi partnerships under Vision 2030. <strong>EWC 3-year deal (2025–2027):</strong> $1.5M prize pool at EWC 2025, Carlsen (Team Liquid) won; 259K peak viewers, #1 chess stream of 2025. <strong>ENC 2026:</strong> Chess.com as official publisher, 128-player field in Riyadh. Saudi funds the prize money; Chess.com brings the audience and format. Massive structural advantage Lichess cannot match.
+</p>
+
+<h4>Mainstream cultural plays</h4>
+<ul>
+  <li><strong>NFL / BlitzChamps:</strong> Super Bowl LX week activation (Feb 2026 = 2nd consecutive year). NFL Films documentary released Feb 2025.</li>
+  <li><strong>CHESS the Musical (Broadway):</strong> Imperial Theatre opening Nov 2025; Chess.com launched exclusive new bots based on characters.</li>
+  <li><strong>NBA / Chesstival:</strong> Wembanyama in Washington Square Park (viral Feb 2025); HoopGambit format with Derrick Rose.</li>
+  <li><strong>Steve Aoki bot (Q3 2025):</strong> DJ / electronic music crossover — non-chess demographic capture.</li>
+</ul>
+
+<!-- ============================================================
+     SECTION 7
+     ============================================================ -->
+<h2 id="s7">§7 — Key People</h2>
+
+<h3 id="s7-1">7.1 Founders</h3>
+
+<div class="org">
+  <div class="org-row">
+    <div class="org-card ceo">
+      <div class="role">CEO / Co-Founder · since 2005</div>
+      <div class="name">Erik Allebest</div>
+      <div class="detail">Born 1977, California. BYU + Stanford GSB MBA. Founded Wholesale Chess; bought chess.com domain at auction for $55K. ~$500K personal capital before profitability in 2009. Took first external capital (GA, Endeavor) only in 2022–23 after 17 years bootstrapped.<br><br><em>"We didn't take VC because we didn't need to. We were profitable from very early."</em></div>
+    </div>
+    <div class="org-card departed">
+      <div class="role">Co-Founder · former CTO · departed ~2024–25</div>
+      <div class="name">Jay Severson</div>
+      <div class="detail">BS Computer Science, San Jose State. Co-purchased chess.com domain. Built original technical architecture; scaled 0 → 250M+ members. Featured on SED Feb 2024 still as CTO; Fortune Oct 2025 refers to him as "former CTO." No successor publicly announced. Now: VexHex Games, Landover, Exercise.com.</div>
+    </div>
+  </div>
+</div>
+
+<h3 id="s7-2">7.2 Danny Rensch — Chief Chess Officer</h3>
+<div class="org">
+  <div class="org-row">
+    <div class="org-card exec">
+      <div class="role">CCO / Co-Founder · joined 2009</div>
+      <div class="name">Danny Rensch</div>
+      <div class="detail">FIDE International Master. Born Oct 10 1985. Raised in a religious group he describes as a cult; chess was his escape. Memoir <em>Dark Squares: How Chess Saved My Life</em> (Sep 2025). CNN and Fortune longform features Oct 2025. Hosts every State of Chess broadcast. The most publicly profiled chess executive in history.<br><br><em>"We're going all in on storytelling this year — what The Queen's Gambit did for chess."</em></div>
+    </div>
+  </div>
+</div>
+
+<h3 id="s7-3">7.3 C-Suite</h3>
+<div class="org">
+  <div class="org-row">
+    <div class="org-card exec">
+      <div class="role">COO · joined May 2018</div>
+      <div class="name">Lee Prince</div>
+      <div class="detail">Des Moines, Iowa. Longest-tenured pure executive after the founders. Manages day-to-day of 668-person fully-remote org across multiple time zones.</div>
+    </div>
+    <div class="org-card exec">
+      <div class="role">VP Product · joined Oct 2012</div>
+      <div class="name">Dallin Atkinson</div>
+      <div class="detail">Greater Salt Lake City. Oversaw product from ~1M to 250M+ members. Drills, Puzzles, Game Review, Coaches, Chessable integration all in scope.</div>
+    </div>
+    <div class="org-card exec">
+      <div class="role">VP Media &amp; Content · hired ~2024</div>
+      <div class="name">Alex Leibow</div>
+      <div class="detail">Northwestern Film &amp; TV. Ex-Snap (Head of Creator Editorial), AMC, Warner Bros, Bad Robot. Most senior external media hire Chess.com has ever made. Mandate: IRL, UGC, documentaries, AVOD/FAST.</div>
+    </div>
+  </div>
+  <div class="org-row">
+    <div class="org-card exec">
+      <div class="role">Director of Content · joined Sep 2013</div>
+      <div class="name">Mike Klein</div>
+      <div class="detail">Chess journalist; editorial output. News readership headwind: -61.8% YoY in Q1 2026.</div>
+    </div>
+    <div class="org-card exec">
+      <div class="role">Director of Pro Relations</div>
+      <div class="name">IM Kassa Korley</div>
+      <div class="detail">Duke + Codecademy. IM 2014; 2 GM norms. Primary interface to titled players; Fair Play spokesperson on every State of Chess broadcast.</div>
+    </div>
+    <div class="org-card exec">
+      <div class="role">Tech PM</div>
+      <div class="name">Rafal Skocelas</div>
+      <div class="detail">Engineering / product updates spokesperson in State of Chess broadcasts. RCN rollout, infrastructure announcements.</div>
+    </div>
+  </div>
+</div>
+
+<h3 id="s7-4">7.4 Contracted Players &amp; Ambassadors</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Name</th><th>Status</th><th>Reach</th><th>Nature of relationship</th></tr></thead>
+<tbody>
+<tr><td><strong>Magnus Carlsen</strong></td><td>Brand Ambassador (signed at PMG Jan 2023)</td><td>~6M chess followers</td><td>Received Chess.com shares as part of $83M PMG all-stock deal; competing-platform promotion restricted; participates in SCC, Titled Tuesdays. <strong>Now: TTT co-founder — direct competitor.</strong></td></tr>
+<tr><td><strong>Hikaru Nakamura</strong></td><td>Lead sponsored streamer; non-exclusive</td><td>3.01M YouTube · 2M Twitch · 5.3M h 2025</td><td>Represented by WME; previously TSM; frequent Chess.com event host. Multi-stream to Twitch + Kick.</td></tr>
+<tr><td><strong>Levy Rozman</strong> (GothamChess)</td><td>Content partner; non-exclusive</td><td>~7.57M YouTube</td><td>Organically Chess.com-affiliated. "vs The World" 225K participants Nov 2025 — world record.</td></tr>
+<tr><td><strong>Botez sisters</strong></td><td>Content partners; non-exclusive</td><td>1.32M Twitch · 1.81M YouTube</td><td>Previously Envy Gaming (2020). PogChamps and Botez Chess Camp.</td></tr>
+<tr><td><strong>Viswanathan Anand</strong></td><td>Ambassador / coach — India market</td><td>Non-streamer; brand credibility in India</td><td>Default coach for new Indian users (Q1 2026). India localisation play.</td></tr>
+<tr><td><strong>Anna Cramling</strong></td><td>Creator / Chessable course author</td><td>~1.66M YouTube</td><td>Chessable "1.d4" #1 bestseller Q4 2025; Panda esports.</td></tr>
+<tr><td><strong>Ju Wenjun</strong></td><td>Event participant</td><td>—</td><td>Women's SCC winner 2× consecutive (Aug 2025).</td></tr>
+<tr><td><strong>Alireza Firouzja</strong></td><td>Event participant</td><td>—</td><td>SCC regular; Sinquefield Cup winner 2024.</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s7-5">7.5 Culture &amp; Headcount</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">4.2 / 5</div><div class="l">Glassdoor overall <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">78%</div><div class="l">Would recommend</div></div>
+  <div class="stat"><div class="v">4.5</div><div class="l">Work-life balance</div></div>
+  <div class="stat"><div class="v">3.8</div><div class="l">Comp &amp; benefits</div></div>
+  <div class="stat"><div class="v">3.8</div><div class="l">Career progression</div></div>
+  <div class="stat"><div class="v">100%</div><div class="l">Remote · no offices</div></div>
+</div>
+
+<h4>Headcount trajectory</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Period</th><th>Headcount</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>2017</td><td>~100</td><td>Chess.com article <span class="badge estimated">~</span></td></tr>
+<tr><td>2021</td><td>~250</td><td>Chess.com virtual team article <span class="badge estimated">~</span></td></tr>
+<tr><td>2023</td><td>~500–600</td><td>Implied from 20VC "700 people" <span class="badge estimated">~</span></td></tr>
+<tr><td>Q4 2025</td><td><strong>664</strong></td><td>Board Report <span class="badge verified">✓</span></td></tr>
+<tr><td>Q1 2026</td><td><strong>668</strong></td><td>Board Report <span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<div class="callout risk">
+  <strong>Key-person risk profile.</strong> 21 years of single-CEO tenure with no public succession plan. Co-founder CTO Severson departed ~2024–25, removing the only peer-level technical check. Rensch's personal brand amplifies Chess.com but if he departed it would lose its most recognisable human face. Carlsen's PMG-era non-compete is being tested in real time by TTT. The Hikaru / Levy / Botez relationships are goodwill + economics, not contract lock-in.
+</div>
+
+<!-- ============================================================
+     SECTION 8
+     ============================================================ -->
+<h2 id="s8">§8 — Competitive Landscape</h2>
+
+<p>
+  This section closes three hypotheses. <strong>H3</strong> — how the PMG deal eliminated competition for 28 months. <strong>H4</strong> — why free open-source doesn't kill Chess.com. <strong>H5</strong> — Carlsen as direct competitor in April 2026.
+</p>
+
+<h3 id="s8-1">8.1 Lichess</h3>
+<div class="stat-grid">
+  <div class="stat"><div class="v">€650K</div><div class="l">Annual donations vs Chess.com $200M+ <span class="badge verified">✓</span></div></div>
+  <div class="stat"><div class="v">1 : 300</div><div class="l">Funding ratio</div></div>
+  <div class="stat"><div class="v">~4M</div><div class="l">MAU <span class="badge estimated">~</span></div></div>
+  <div class="stat"><div class="v">6B+</div><div class="l">Games in database (crossed 2024)</div></div>
+  <div class="stat"><div class="v">3 FT</div><div class="l">Full-time staff + 2 PT + 21 contractors</div></div>
+  <div class="stat"><div class="v">AGPL</div><div class="l">Fully open-source; Scala 3 / Play 2.8</div></div>
+</div>
+
+<h4>Lichess strengths and gaps</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Strengths</th><th>Gaps</th></tr></thead>
+<tbody>
+<tr><td>Free forever; no subscriptions</td><td>No structured learning content</td></tr>
+<tr><td>Open code, open data, ~75 academic papers in 2024</td><td>No contracted streamers, no celebrities</td></tr>
+<tr><td>Per-session engagement higher than Chess.com</td><td>Mobile only beta in 2024</td></tr>
+<tr><td>Game variants (Crazyhouse, Antichess, Horde)</td><td>No ChessKid analogue (vs 14.8M users)</td></tr>
+<tr><td>Stockfish without limits, local browser</td><td>No Chessable analogue (vs 630K active learners)</td></tr>
+<tr><td>Anti-cheat without Proctor-style barriers</td><td>501(c)(3) caps commercial activity</td></tr>
+</tbody>
+</table></div>
+
+<div class="callout">
+  <strong>2024 was the first year Lichess expenses exceeded donations.</strong> Position described as "stable" — but the structural ceiling is real: Lichess cannot raise capital, cannot hire 100+ engineers, cannot invest in marketing. The donation flywheel sustains, it doesn't scale.
+</div>
+
+<h3 id="s8-2">8.2 Chess24 — Postmortem</h3>
+
+<div class="timeline">
+  <div class="timeline-item muted"><div class="t-date">2013</div><div class="t-title">Founded (Germany)</div></div>
+  <div class="timeline-item muted"><div class="t-date">2019</div><div class="t-title">Merges with Play Magnus → forms PMG</div></div>
+  <div class="timeline-item major"><div class="t-date">Aug → Dec 2022</div><div class="t-title">Chess.com buys PMG (~$82.9M)</div></div>
+  <div class="timeline-item"><div class="t-date">Dec 2023</div><div class="t-title">Chess.com announces Chess24 shutdown</div></div>
+  <div class="timeline-item"><div class="t-date">Jan 31 2024</div><div class="t-title">Chess24.com goes dark → redirect to Chess.com</div></div>
+  <div class="timeline-item major"><div class="t-date">Q1 2026</div><div class="t-title">Brand reactivated as event-coverage sub-channel</div><div class="t-body">Board report: "Transitioning event coverage to Chess24" — the brand returns as a specialised hardcore-event channel so Chess.com main can re-position for casual / women / UGC audiences.</div></div>
+</div>
+
+<p>
+  <strong>From Jan 2024 to April 2026 — 28 months — Chess.com had no significant new competitor in any premium content segment.</strong> That is H3 in its purest form. The PMG deal absorbed the last serious challenger; the post-acquisition window was used to consolidate the IP stack without external pressure.
+</p>
+
+<h3 id="s8-3">8.3 ICC — Internet Chess Club</h3>
+<p>
+  Founded 1995. Peak ~30,000 paid subscribers (2005). Maintained a paywall-only model through Chess.com's freemium rise — and lost. Attempted relaunch 2024 with technical issues persisting. <strong>Zombie competitor</strong> — not dead, not relevant. ICC's failure is instructive: paywall-only without a content flywheel does not work in chess.
+</p>
+
+<h3 id="s8-5">8.5 Take Take Take — Magnus's competitor, April 2026</h3>
+
+<div class="stat-grid">
+  <div class="stat"><div class="v">$9M</div><div class="l">Total raised (pre-seed + seed)</div></div>
+  <div class="stat"><div class="v">6 Apr 2026</div><div class="l">Play+learn launch</div></div>
+  <div class="stat"><div class="v">Lichess</div><div class="l">Game infrastructure partner</div></div>
+  <div class="stat"><div class="v">Oslo</div><div class="l">HQ — same city as PMG origin</div></div>
+</div>
+
+<h4>Cap table — the people who funded the threat</h4>
+<ul>
+  <li><strong>Pre-seed €2.8M:</strong> Snö Ventures + Peter Thiel + Jim Breyer + Breakthrough Initiatives</li>
+  <li><strong>Seed $5.5M:</strong> Skyfall Ventures, Snö Ventures, Coatue Management</li>
+  <li><strong>Named individual backers:</strong> Patrick Collison (Stripe), Jack Brody</li>
+  <li><strong>Player endorsement:</strong> Anish Giri publicly; Hans Niemann promoting Endgame.ai (parallel TTT project)</li>
+</ul>
+
+<h4>The structural paradox</h4>
+<div class="callout risk">
+  Magnus Carlsen is simultaneously: (a) the only named Chess.com ambassador with equity-adjacent ties from the PMG deal; (b) co-founder and largest shareholder of Take Take Take; (c) legally restricted from openly promoting TTT due to the Chess.com agreement. <em>"There are limitations to how Magnus can promote Take Take Take because it's in conflict with the agreement with Chess.com."</em> — CEO Mats André Kristiansen.<br><br>
+  CEO Erik Allebest warned publicly against TTT entering the play-and-learn segment. The launch happened anyway.
+</div>
+
+<h4>Threat assessment</h4>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Factor</th><th>Threat level</th><th>Reasoning</th></tr></thead>
+<tbody>
+<tr><td>Carlsen brand</td><td><strong>High</strong></td><td>Largest chess star alive — co-founder</td></tr>
+<tr><td>$9M capital</td><td>Medium</td><td>Tiny vs Chess.com's 668 staff and $200M+ ARR</td></tr>
+<tr><td>Lichess infrastructure</td><td>Medium</td><td>Fast launch, but donation-NGO scaling risk</td></tr>
+<tr><td>Target niche ("improving players")</td><td><strong>Medium–High</strong></td><td>This is Chess.com's most profitable premium-subscriber segment</td></tr>
+<tr><td>Carlsen legal restrictions</td><td>Reduces threat</td><td>Cannot openly promote TTT</td></tr>
+<tr><td>No own tournament ecosystem</td><td>Reduces threat</td><td>No prize events, no live broadcast infrastructure</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s8-6">8.6 Comparison Matrix</h3>
+<div class="tbl-wrap"><table class="sortable" id="tblCompetitors">
+<thead><tr><th>Platform</th><th data-sort="number">MAU (M)</th><th data-sort="number">Revenue $M</th><th>Model</th><th>Open-source</th><th>Mobile-first</th><th>AI features</th><th>Owns content</th></tr></thead>
+<tbody>
+<tr><td><strong>Chess.com</strong></td><td>75</td><td>185</td><td>Freemium subs</td><td>No</td><td>Yes (17.3M/q)</td><td>Yes (Proctor, Game Review)</td><td>Yes (Chessable, ChessKid, events)</td></tr>
+<tr><td><strong>Lichess</strong></td><td>4</td><td>0.7</td><td>Donation 100% free</td><td>Yes (AGPL)</td><td>Beta 2024</td><td>Stockfish unlimited</td><td>No (open data only)</td></tr>
+<tr><td><strong>Take Take Take</strong></td><td>0.05</td><td>0</td><td>Pre-revenue ($9M raised)</td><td>No (uses Lichess)</td><td>Yes (day-1)</td><td>Via Lichess engine</td><td>Partial (Magnus, Levy recaps)</td></tr>
+<tr><td><strong>Chess24</strong></td><td>0</td><td>0</td><td>Shut Jan 2024; brand → event channel</td><td>No</td><td>n/a</td><td>n/a</td><td>Transferred to Chess.com</td></tr>
+<tr><td><strong>ICC</strong></td><td>0.1</td><td>1</td><td>Paid subscription</td><td>No</td><td>Poor (legacy)</td><td>Basic engine</td><td>Limited (legacy)</td></tr>
+<tr><td><strong>Play Magnus app</strong></td><td>0</td><td>0</td><td>Deprecated post-2022</td><td>No</td><td>Legacy</td><td>Calibrated engine</td><td>Brand only</td></tr>
+</tbody>
+</table></div>
+<p style="font-family:var(--sans);font-size:12px;color:var(--ink-3);">Click any column header to sort. MAU and Revenue are best-estimate midpoints for sort utility — exact ranges and confidence in the section narrative.</p>
+
+<h4>The H4 answer — why Lichess doesn't kill Chess.com</h4>
+<ol>
+  <li><strong>Ecosystem vs product moat.</strong> Lichess is the better tool. Chess.com is the better ecosystem: Chessable (630K active) + ChessKid (14.8M) + Coaches (1M+) — none of which Lichess has.</li>
+  <li><strong>Celebrity gap.</strong> Hikaru, GothamChess, Botez, Magnus, Anand — hundreds of millions of subscribers combined. Lichess cannot afford to contract any of them.</li>
+  <li><strong>Funding ceiling.</strong> €650K vs $200M = 1:300. Chess.com can invest more in any single feature than Lichess's entire annual budget.</li>
+  <li><strong>Proctor as switching cost for serious players.</strong> Mandatory for prize events. Lichess uses open-source fair play.</li>
+  <li><strong>Prize money + esports integration.</strong> EWC 2025 ($1.5M, 259K peak) is impossible for a non-profit. Pros play where the money is.</li>
+  <li><strong>Mobile execution.</strong> 17.3M quarterly installs vs Lichess's beta apps in 2024.</li>
+</ol>
+
+<!-- ============================================================
+     SECTION 9
+     ============================================================ -->
+<h2 id="s9">§9 — News &amp; Events 2024–2026</h2>
+
+<p>
+  24 months of news organised as a horizontal timeline. Click into any card for the detail.
+</p>
+
+<div class="news-timeline">
+  <div class="news-card t-scandal">
+    <div class="n-date">Aug 2023</div>
+    <span class="n-type">scandal</span>
+    <div class="n-title">Niemann lawsuit settled</div>
+    <div class="n-body">All parties settle; Niemann account restored; financial terms NDA. Federal court had dismissed June 2023.</div>
+  </div>
+  <div class="news-card t-scandal">
+    <div class="n-date">Nov 2023</div>
+    <span class="n-type">scandal</span>
+    <div class="n-title">Kramnik vs Nakamura</div>
+    <div class="n-body">~2,000 FP reports on Hikaru games; no cheating found. Chess.com closes Kramnik's blog.</div>
+  </div>
+  <div class="news-card t-fin">
+    <div class="n-date">Dec 2023</div>
+    <span class="n-type">finance</span>
+    <div class="n-title">Endeavor / WME deal</div>
+    <div class="n-body">Minority strategic investment; WME exclusive global brand sales agent. $1B+ self-reported valuation.</div>
+  </div>
+  <div class="news-card t-ma">
+    <div class="n-date">Jan 2024</div>
+    <span class="n-type">m&amp;a</span>
+    <div class="n-title">Chess24 shut down</div>
+    <div class="n-body">Chess24.com → redirect to Chess.com. PMG integration complete.</div>
+  </div>
+  <div class="news-card t-product">
+    <div class="n-date">Aug 2024</div>
+    <span class="n-type">product</span>
+    <div class="n-title">Proctor announced + Leibow hired</div>
+    <div class="n-body">VP Media &amp; Content Alex Leibow ex-Snap publicly introduced. Proctor anti-cheat browser unveiled.</div>
+  </div>
+  <div class="news-card t-ma">
+    <div class="n-date">Dec 2024</div>
+    <span class="n-type">m&amp;a</span>
+    <div class="n-title">Print → Quality Chess</div>
+    <div class="n-body">New In Chess + Everyman transferred to Jacob Aagaard; Chess.com keeps all digital rights + 200+ Quality Chess catalogue.</div>
+  </div>
+  <div class="news-card t-viral">
+    <div class="n-date">Dec 2024</div>
+    <span class="n-type">viral</span>
+    <div class="n-title">Gukesh WCC — 517K peak</div>
+    <div class="n-body">Gukesh youngest-ever world champion at 18. #1 article 2024. India registrations spike.</div>
+  </div>
+  <div class="news-card t-scandal">
+    <div class="n-date">Dec 2024</div>
+    <span class="n-type">scandal</span>
+    <div class="n-title">Carlsen jeans incident</div>
+    <div class="n-body">FIDE $200 fine at NY World Rapid. Carlsen walks. Speaks via Take Take Take channel.</div>
+  </div>
+  <div class="news-card t-partner">
+    <div class="n-date">Jan 2025</div>
+    <span class="n-type">partner</span>
+    <div class="n-title">Freestyle Grand Slam Tour</div>
+    <div class="n-body">Chess.com = official broadcast partner; qualification path for all members.</div>
+  </div>
+  <div class="news-card t-product">
+    <div class="n-date">Feb 2025</div>
+    <span class="n-type">product</span>
+    <div class="n-title">Friends &amp; Family Plan</div>
+    <div class="n-body">Diamond up to 6 seats. Proctor on 25% of TT + all CCT qualifier.</div>
+  </div>
+  <div class="news-card t-viral">
+    <div class="n-date">Feb 2025</div>
+    <span class="n-type">viral</span>
+    <div class="n-title">Carlsen × Rogan podcast</div>
+    <div class="n-body">JRE #2275 — 4.7M YouTube views in weeks. Mainstream crossover.</div>
+  </div>
+  <div class="news-card t-partner">
+    <div class="n-date">Jul–Aug 2025</div>
+    <span class="n-type">partner</span>
+    <div class="n-title">EWC 2025 — 259K peak</div>
+    <div class="n-body">Chess.com's #1 viewership event ever. $1.5M prize pool. Carlsen (Team Liquid) wins.</div>
+  </div>
+  <div class="news-card t-product">
+    <div class="n-date">Sep 2025</div>
+    <span class="n-type">product</span>
+    <div class="n-title">Proctor mandatory</div>
+    <div class="n-body">TT, 3+0 Thursday, Freestyle Friday — full rollout. Choose Your Coach launched.</div>
+  </div>
+  <div class="news-card t-viral">
+    <div class="n-date">Oct 2025</div>
+    <span class="n-type">viral</span>
+    <div class="n-title">Daniel Naroditsky passes (29)</div>
+    <div class="n-body">Cardiac arrhythmia / sarcoidosis. Obituary article = "probably the most-read in Chess.com history." Memorial fund $1M+ in 6 weeks.</div>
+  </div>
+  <div class="news-card t-partner">
+    <div class="n-date">Nov 2025</div>
+    <span class="n-type">partner</span>
+    <div class="n-title">ENC 2026 publisher</div>
+    <div class="n-body">Esports Nations Cup 2026 — Chess.com official publisher. Riyadh, 128 players, Nov 2026.</div>
+  </div>
+  <div class="news-card t-product">
+    <div class="n-date">Jan 2026</div>
+    <span class="n-type">product</span>
+    <div class="n-title">FIDE × Freestyle agreement</div>
+    <div class="n-body">FIDE blinks. Cooperation agreement signed; FIDE recognises Freestyle WCC title.</div>
+  </div>
+  <div class="news-card t-product">
+    <div class="n-date">Q1 2026</div>
+    <span class="n-type">product</span>
+    <div class="n-title">Widgets + Anand coach</div>
+    <div class="n-body">Widgets deliver ~90% D1 return. Anand + Tania Sachdev as voice coaches for Indian users.</div>
+  </div>
+  <div class="news-card t-viral">
+    <div class="n-date">Apr 7 2026</div>
+    <span class="n-type">viral</span>
+    <div class="n-title">Netflix "Untold: Chess Mates"</div>
+    <div class="n-body">First Carlsen + Niemann joint appearance since 2022. Director Thomas Tancred.</div>
+  </div>
+  <div class="news-card t-rival">
+    <div class="n-date">Apr 6 2026</div>
+    <span class="n-type">rival</span>
+    <div class="n-title">Take Take Take play+learn launch</div>
+    <div class="n-body">Magnus's startup partners with Lichess; enters Chess.com's core segment. The PMG-era non-compete is being tested in real time.</div>
+  </div>
+</div>
+
+<h3 id="s9-1">9.1 Niemann saga — full chronology</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Date</th><th>Event</th></tr></thead>
+<tbody>
+<tr><td>4 Sep 2022</td><td>Niemann beats Carlsen with Black at Sinquefield Cup R3 — ends Carlsen's 53-game OTB unbeaten streak</td></tr>
+<tr><td>5 Sep 2022</td><td>Carlsen withdraws without explanation; Mourinho-quote tweet</td></tr>
+<tr><td>19 Sep 2022</td><td>Carlsen statement: "Niemann has cheated more — and recently — than he has publicly admitted"</td></tr>
+<tr><td>Oct 2022</td><td>Chess.com 72-page Hans Niemann Report: likely 100+ online cheats; <strong>no OTB evidence</strong></td></tr>
+<tr><td>Oct 2022</td><td>Niemann $100M lawsuit — Carlsen, Chess.com, Hikaru, Rex Sinquefield as co-defendants</td></tr>
+<tr><td>Jun 2023</td><td>Federal court (EDMO) dismisses suit — Carlsen statements protected as First-Amendment opinion</td></tr>
+<tr><td>Aug 2023</td><td>All parties settle. Niemann account restored. NDA on financial terms.</td></tr>
+<tr><td>Apr 2026</td><td>Netflix "Untold: Chess Mates" — first Carlsen + Niemann joint appearance since 2022</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s9-4">9.4 Gukesh WCC effect</h3>
+<p>
+  WCC 2024 Singapore: Gukesh beats Ding 7.5–6.5; youngest-ever undisputed world champion at 18. <strong>Peak viewership on Chess.com: 517,897</strong> — highest single event of 2024. Indian engagement signals: Instagram "Gukesh hugs father" 4.6M likes; "India wins Olympiad gold" 1.3M views; Q1 2026 product response = Anand as default coach for new Indian users. Q4 2024 estimated registrations ~10.7M, up ~22% QoQ from Q3 2024 (~8.8M) <span class="badge estimated">~</span>.
+</p>
+
+<h3 id="s9-5">9.5 Product launches 2023–2026</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Period</th><th>Launch</th><th>Significance</th></tr></thead>
+<tbody>
+<tr><td>2023</td><td>Game Review free for all</td><td>Previously premium-only — top-of-funnel move</td></tr>
+<tr><td>Aug 2024</td><td>Proctor announced</td><td>Proprietary anti-cheat browser</td></tr>
+<tr><td>Aug 2024</td><td>RCN (Realtime Chess Network)</td><td>52% of games on distributed servers → 100% by 2026</td></tr>
+<tr><td>Nov 2024</td><td>Black Friday Diamond 50% off</td><td>"Most successful special offer ever"</td></tr>
+<tr><td>Feb 2025</td><td>Friends &amp; Family Plan</td><td>Diamond up to 6 seats</td></tr>
+<tr><td>2025</td><td>No Ads plan $1/mo</td><td>New tier</td></tr>
+<tr><td>Q3 2025</td><td>Choose Your Coach (ElevenLabs voices)</td><td>Hikaru, Magnus, Levy, Botez, Cramling, Rensch</td></tr>
+<tr><td>Q3 2025</td><td>Streaks reintroduced</td><td>Daily habit loop</td></tr>
+<tr><td>Q4 2025</td><td>Chessable onboarding revamp</td><td>+50% retention lift</td></tr>
+<tr><td>Q1 2026</td><td>Widgets</td><td>~90% next-day return rate</td></tr>
+<tr><td>Q1 2026</td><td>Eight new Puzzle Worlds</td><td>Progression + prestige</td></tr>
+<tr><td>Feb 2026</td><td>Anand + Sachdev voice coaches</td><td>India localisation</td></tr>
+</tbody>
+</table></div>
+
+<h3 id="s9-7">9.7 Other significant events</h3>
+
+<h4>GM Daniel Naroditsky — Oct 19 2025</h4>
+<p>
+  Died at 29; cardiac arrhythmia from systemic sarcoidosis (ME report; manner: accident). His Chess.com obituary article became <strong>"probably the most-read story in the platform's history."</strong> Memorial Fellowship Fund: $1M+ from ~2,800 donors in 6 weeks. The single most important signal in this entire report about the <em>nature</em> of Chess.com's audience — they consume it as media, not just as a game client.
+</p>
+
+<h4>Carlsen jeans incident — Dec 2024</h4>
+<p>
+  $200 FIDE fine at NY World Rapid Championship for wearing jeans. Carlsen refused to change, walked out. Spoke publicly via Take Take Take's channel — a demonstration of independence from chess institutions. Next day at World Blitz, FIDE allowed "elegant minor deviations." International viral coverage (NPR, ESPN, NBC, Guardian).
+</p>
+
+<!-- ============================================================
+     SECTION 10
+     ============================================================ -->
+<h2 id="s10">§10 — Methodology &amp; Caveats</h2>
+
+<div class="legend" style="margin-top:0;">
+  <span><strong>Confidence:</strong></span>
+  <span><span class="badge verified">✓</span> verified — primary source (Chess.com / SEC / press release)</span>
+  <span><span class="badge estimated">~</span> estimated — secondary source with known methodology</span>
+  <span><span class="badge unverified">?</span> unverified — single source / no methodology / 3+ years stale</span>
+</div>
+
+<h3>What is measurably reliable</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Data type</th><th>Source</th><th>Caveat</th><th>Mark</th></tr></thead>
+<tbody>
+<tr><td>Registered members</td><td>Chess.com Board Reports Q3 2025 – Q1 2026</td><td>Self-reported; not audited but official company position</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>DAU</td><td>Board Reports</td><td>Self-reported; methodology not disclosed</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Quarterly new registrations</td><td>Board Reports</td><td>Self-reported</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Quarterly total games</td><td>Board Reports</td><td>Self-reported</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>App installs</td><td>Board Reports + Sensor Tower</td><td>Order-of-magnitude agreement</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Fair-play stats</td><td>Board Reports</td><td>Self-reported</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Headcount</td><td>Board Reports — 664 / 668</td><td>Self-reported</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Web traffic, engagement</td><td>SimilarWeb</td><td>±15–20% panel error</td><td><span class="badge estimated">~</span></td></tr>
+<tr><td>M&amp;A amounts (PMG $80M, GA round)</td><td>PitchBook, Crunchbase, press releases</td><td>Amounts confirmed; contract terms not</td><td><span class="badge verified">✓</span></td></tr>
+<tr><td>Social media metrics</td><td>Social Blade, TwitchTracker</td><td>Publicly observable</td><td><span class="badge verified">✓</span></td></tr>
+</tbody>
+</table></div>
+
+<h3>What is estimation only</h3>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Data type</th><th>Best estimate</th><th>Source</th><th>Mark</th></tr></thead>
+<tbody>
+<tr><td>Annual revenue</td><td>$150M — $220M+</td><td>Latka (~$150M, 2022–23), Sherwood / Fortune / AInvest (~$200M+)</td><td><span class="badge estimated">~</span></td></tr>
+<tr><td>Revenue structure</td><td>~88 / 10 / 2 subs / ads / sponsor</td><td>Rensch to Adweek 2025</td><td><span class="badge estimated">~</span></td></tr>
+<tr><td>ARPU / ARPPU</td><td>$3.95 / $67.7</td><td>Reconstruction</td><td><span class="badge unverified">?</span></td></tr>
+<tr><td>CAC</td><td>Not estimable</td><td>Zero paid spend data</td><td><span class="badge unverified">?</span></td></tr>
+<tr><td>Retention D7/D30</td><td>No public data</td><td>Chessable +50% proxy only</td><td><span class="badge unverified">?</span></td></tr>
+<tr><td>EBITDA / net income</td><td>Profitable (CEO claim)</td><td>Allebest interviews; not audited</td><td><span class="badge estimated">~</span></td></tr>
+<tr><td>Demographics (age, gender)</td><td>SimilarWeb panel</td><td>Significant panel error</td><td><span class="badge unverified">?</span></td></tr>
+<tr><td>Implied valuation</td><td>$1B+ (2023)</td><td>Self-reported by company</td><td><span class="badge estimated">~</span></td></tr>
+</tbody>
+</table></div>
+
+<h3>Private-company limits</h3>
+<p>
+  Chess.com files no SEC reports, no P&amp;L, no balance sheet, no Cash Flow Statement. Journalist estimates diverge materially: Latka $150M (2022–23 self-reported) vs Sherwood / Fortune / AInvest $200M+ (2024–25). Spread ~30–40% is normal for a private company with a single original source — the founders.
+</p>
+<p>
+  <strong>Board Reports are a new disclosure practice with a historical gap.</strong> Only Q3 2025, Q4 2025, and Q1 2026 are in the public archive. 2019–2024 = pure reconstruction. Q1–Q2 2025 = either missing or inferable from YoY comparisons in the available reports. The fact that board reports exist at all is a positive institutional-maturity signal — likely a reflection of the GA + Endeavor cap table — but the archive is only three quarters deep.
+</p>
+
+<div class="callout note">
+  <strong>Author rule.</strong> Every numeric fact in this report carries a badge inline. Absence of a badge is a formatting error, not an implicit endorsement.
+</div>
+
+<!-- ============================================================
+     BIBLIOGRAPHY
+     ============================================================ -->
+<h2 id="bib">Bibliography</h2>
+
+<div class="bib-section">
+  <h3>Primary — Chess.com self-reported</h3>
+  <ul class="bib-list">
+    <li>Chess.com <a href="https://www.chess.com/board-reports/2026-q1">Q1 2026 Board Report</a> · <a href="https://www.chess.com/board-reports/2025-q4">Q4 2025</a> · Q3 2025 (PDF only, HTML 404) — verified primary <span class="badge verified">✓</span></li>
+    <li>Chess.com <a href="https://www.chess.com/article/view/year-in-review-2025">2025 Year in Review</a> · <a href="https://www.chess.com/article/view/year-in-review-2024">2024</a> · <a href="https://www.chess.com/news/view/2023-year-in-review">2023</a> <span class="badge verified">✓</span></li>
+    <li>State of Chess: <a href="https://www.chess.com/news/view/2024-state-of-chess-august-1">August 2024</a> · <a href="https://www.chess.com/news/view/2025-state-of-chess">February 2025</a> · <a href="https://www.chess.com/article/view/chesscom-update-september-2025">September 2025</a> <span class="badge verified">✓</span></li>
+    <li>Chess.com Press: <a href="https://www.chess.com/news/view/chesscom-acquires-pmg">PMG acquisition</a> · <a href="https://www.chess.com/news/view/chesscom-reaches-100-million-members">100M members (Dec 2022)</a> · <a href="https://www.chess.com/news/view/chesscom-reaches-250-million-members">250M (Feb 2026)</a></li>
+    <li>Chess.com Niemann: <a href="https://www.chess.com/blog/CHESScom/chess-com-concludes-legal-dispute-with-hans-niemann-niemann-to-return-to-chess-com">Settlement (Aug 2023)</a> · <a href="https://www.chess.com/news/view/hans-niemann-lawsuit-dismissed">Dismissal (Jun 2023)</a> · <a href="https://www.chess.com/blog/CHESScom/regarding-recent-accusations">Kramnik response (Nov 2023)</a></li>
+    <li>Chess.com Partnerships: <a href="https://www.chess.com/news/view/google-title-sponsor-2024-world-chess-championship">Google WCC 2024</a> · <a href="https://www.chess.com/news/view/freestyle-chess-grand-slam-tour-2025-partnership">Freestyle 2025</a> · <a href="https://www.chess.com/news/view/freestyle-chess-fide-world-championship-partnership-2026">FIDE × Freestyle Jan 2026</a> · <a href="https://www.chess.com/news/view/chess-makes-historic-debut-at-esports-world-cup-2025-with-1-5-million-prize-pool">EWC 2025</a> · <a href="https://www.chess.com/news/view/chess-com-joins-esports-nations-cup-as-official-publisher-for-2026-launch">ENC 2026</a> · <a href="https://www.chess.com/news/view/perplexity-partnership-comet-open-announcement">Perplexity Comet Open</a> · <a href="https://www.chess.com/news/view/zenni-optical-partners-with-chesscom">Zenni</a></li>
+    <li>Chess.com Product: <a href="https://www.chess.com/article/view/prices-changing">2022 price increase</a> · <a href="https://www.chess.com/news/view/announcing-friends-and-family-plan">Friends &amp; Family</a> · <a href="https://www.chess.com/news/view/announcing-vishy-tania-coaches">Anand + Sachdev coaches</a> · <a href="https://www.chess.com/news/view/anand-signs-for-chess-com">Anand signs</a></li>
+    <li>Chess.com Founder narrative: <a href="https://www.chess.com/blog/erik/how-i-got-the-chess-com-domain-name">Allebest — domain story</a> · <a href="https://www.chess.com/article/view/chesscom-ceo">CEO bio</a></li>
+    <li>Chess.com Other: <a href="https://www.chess.com/news/view/chess-com-transitions-new-in-chess-everyman-chess-to-quality-chess">Print spin-off</a> · <a href="https://www.chess.com/news/view/grandmaster-daniel-naroditsky-dies-at-29">Naroditsky obituary</a> · <a href="https://www.chess.com/news/view/netflix-untold-documentary-on-carlsen-niemann-scandal-gets-2026-release-date">Netflix Untold</a> · <a href="https://www.chess.com/news/view/gothamchess-beats-the-world-recap">GothamChess vs The World</a> · <a href="https://www.chess.com/news/view/announcing-india-rising-2026">India Rising 2026</a> · <a href="https://www.chess.com/article/view/chess-countries">World Map of Players</a> · <a href="https://www.chess.com/news/view/li-glickman-chabris-2025-sex-ratings-retention-competitive-chess">Gender study (peer-reviewed)</a></li>
+  </ul>
+
+  <h3>Primary — Other</h3>
+  <ul class="bib-list">
+    <li>FIDE: <a href="https://www.fide.com/google-announced-as-title-sponsor-of-world-chess-championship-2024/">Google as WCC 2024 sponsor</a> · <a href="https://www.fide.com/the-first-official-fide-freestyle-chess-world-championship-to-be-hosted-in-weissenhaus/">FIDE Freestyle WCC (Jan 2026)</a> · <a href="https://www.fide.com/fide-elections-2026-announced/">2026 Elections</a></li>
+    <li>Freestyle Chess: <a href="https://www.freestyle-chess.com/news/freestyle-chess-and-chess-com-announce-major-partnership/">Chess.com partnership press release</a></li>
+    <li>BusinessWire: <a href="https://www.businesswire.com/news/home/20220114005077/en/Chess.com-Announces-Growth-Investment-from-General-Atlantic">General Atlantic announcement (Jan 2022)</a></li>
+    <li>Houlihan Lokey: <a href="https://hl.com/about-us/transactions/houlihan-lokey-advises-chesscom/">GA deal</a> · <a href="https://hl.com/about-us/transactions/houlihan-lokey-advises-play-magnus-group/">PMG deal</a></li>
+    <li>Bloomberg LEI: <a href="https://lei.bloomberg.com/leis/view/254900QRUQVAH5FMN049">Chess Growthco LLC (entity registration)</a></li>
+    <li>Playwire: <a href="https://www.playwire.com/case-studies/chess">Chess.com case study (130% lift, 4× CPM)</a></li>
+    <li>Take Take Take: <a href="https://taketaketake.com/about">About page</a></li>
+    <li>Lichess: <a href="https://lichess.org/@/Lichess/blog/lichess-a-review-of-2024/hYZssXbK">Review of 2024</a> · <a href="https://github.com/lichess-org/lila">lila on GitHub</a></li>
+  </ul>
+
+  <h3>Business journalism</h3>
+  <ul class="bib-list">
+    <li><a href="https://variety.com/2023/digital/news/endeavor-chess-com-investment-wme-1235837789/">Variety — Endeavor invests in Chess.com (Dec 2023)</a> <span class="badge verified">✓</span></li>
+    <li><a href="https://www.hollywoodreporter.com/business/business-news/endeavor-chess-investment-wme-1235753177/">Hollywood Reporter — Endeavor / WME (Dec 2023)</a> <span class="badge verified">✓</span></li>
+    <li><a href="https://www.sportico.com/business/finance/2023/chess-com-endeavor-investment-1234757555/">Sportico — Endeavor investment (Dec 2023)</a></li>
+    <li><a href="https://www.adweek.com/media/chess-makes-new-advertising-gambit/">Adweek — 250M users, ads gambit (2025)</a> — Rensch on revenue structure</li>
+    <li><a href="https://techcrunch.com/2025/04/24/chess-com-reaches-200-million-members/">TechCrunch — 200M members (Apr 2025)</a></li>
+    <li><a href="https://fortune.com/2025/10/05/chess-cofounder-danny-rensch-child-prodigy-cult-entrepreneur-millions-players-platform/">Fortune — Danny Rensch longform (Oct 2025)</a></li>
+    <li><a href="https://www.inc.com/rebecca-deczynski/the-surprising-lessons-behind-chess-coms-rise-to-a-billion-dollar-company/91251338">Inc. — Chess.com's rise to $1B (2023)</a></li>
+    <li><a href="https://sherwood.news/culture/how-the-chess-com-empire-makes-more-than-usd100m-a-year/">Sherwood — How Chess.com makes $100M+ (2024)</a></li>
+    <li><a href="https://www.sportbusiness.com/news/chess-com-to-acquire-play-magnus-group-in-82m-deal/">SportBusiness — PMG $82M deal (Aug 2022)</a></li>
+    <li><a href="https://frontofficesports.com/top-chess-player-platform-join-forces-in-82-9m-deal/">Front Office Sports — $82.9M deal (Aug 2022)</a></li>
+    <li><a href="https://www.deseret.com/2023/1/30/23578327/how-two-byu-grads-launched-the-worlds-most-popular-chess-website/">Deseret News — Two BYU grads (Jan 2023)</a></li>
+    <li><a href="https://gizmodo.com/hans-niemann-settles-100-million-lawsuit-chess-com-1850781684">Gizmodo — Niemann settlement (Aug 2023)</a></li>
+    <li><a href="https://www.cbsnews.com/news/chess-naroditsky-kramnik-cheating-discipline-possible/">CBS News — Kramnik / Hikaru</a></li>
+    <li><a href="https://www.npr.org/2024/12/28/nx-s1-5241802/chess-jeans-magnus-carlsen-quits-championship">NPR — Carlsen jeans incident (Dec 2024)</a></li>
+    <li><a href="https://www.espn.com/espn/story/_/id/48387161/hans-niemann-magnus-carlsen-netflix-chess-scandal-vindication">ESPN — Niemann path to vindication (Apr 2026)</a></li>
+    <li><a href="https://www.unionleader.com/news/back_page/carlsen-start-up-takes-aim-at-chess-com-with-move-into-play-and-learn-tools/article_d89ef4e1-cdbf-5e85-ac16-e3e75e7cc854.html">Union Leader / CP24 — TTT enters play+learn (Apr 2026)</a></li>
+    <li><a href="https://chesstopics.com/carlsens-startup-take-take-take-enters-play-and-learn-market-challenging-chess-coms-dominance/">ChessTopics — TTT launch (Apr 2026)</a></li>
+    <li><a href="https://siliconcanals.com/magnus-carlsens-fantasy-chess-raises-e2-8m/">Silicon Canals — TTT raises €2.8M</a></li>
+    <li><a href="https://en.chessbase.com/post/open-letter-buettner-dvorkovich">ChessBase — Buettner open letter to Dvorkovich (Feb 2025)</a></li>
+    <li><a href="https://thechessmind.substack.com/p/carlsen-take-take-take-chesscom-and">The Chess Mind (Substack) — TTT / Lichess / Chess.com analysis</a></li>
+    <li><a href="https://worldchess.com/news/dvorkovich-accused-of-blatantly-violating-every-electoral-rule-possible-in-race-for-re-election">WorldChess — Dvorkovich election violations</a></li>
+    <li><a href="https://www.insidethegames.biz/articles/1122945/fide-call-for-candidates-congress">Inside the Games — FIDE candidates</a></li>
+  </ul>
+
+  <h3>Industry data / panels</h3>
+  <ul class="bib-list">
+    <li><a href="https://getlatka.com/companies/chess.com">Latka — Chess.com $150.7M (2023, self-reported)</a></li>
+    <li><a href="https://www.cbinsights.com/company/chesscom/financials">CBInsights — Chess.com financials (largely paywalled)</a></li>
+    <li><a href="https://www.similarweb.com/website/chess.com/">SimilarWeb — chess.com analytics</a> · <a href="https://www.similarweb.com/website/lichess.org/vs/chess.com/">vs lichess.org</a></li>
+    <li><a href="https://socialblade.com/youtube/handle/chess">Social Blade — Chess.com YouTube</a> · <a href="https://socialblade.com/youtube/handle/gothamchess">GothamChess</a></li>
+    <li><a href="https://twitchtracker.com/chess/statistics">TwitchTracker — chess</a> · <a href="https://streamscharts.com/channels/chess">StreamsCharts</a></li>
+    <li><a href="https://chesswatch.com/news/top-chess-streamers-in-2025">ChessWatch — Top chess streamers 2025</a> · <a href="https://chesswatch.com/events/esports-world-cup-2025-chess">EWC 2025 viewership</a></li>
+    <li><a href="https://www.saas-capital.com/blog-posts/revenue-per-employee-benchmarks-for-private-saas-companies/">SaaS Capital — Revenue per employee benchmarks 2025</a></li>
+    <li><a href="https://www.glassdoor.com/Overview/Working-at-Chess-com-EI_IE2241778.11,20.htm">Glassdoor — Chess.com</a></li>
+    <li><a href="https://startupspells.com/p/chess-com-seo-case-study">Startup Spells — Chess.com SEO case study</a> · <a href="https://seoalive.com/en/success-stories/chess-com/">SEO Alive</a></li>
+    <li><a href="https://www.ainvest.com/news/chess-digital-chess-giant-poised-dominate-athlete-driven-entertainment-market-2506/">AInvest — Chess.com analysis (May 2026)</a> — AI-generated, treat as low-confidence</li>
+    <li><a href="https://felixbraberg.substack.com/p/how-chesscom-became-a-500m-business-781">Felix Braberg — $500M business (Substack)</a> — speculative</li>
+    <li><a href="https://neon.fund/podcasts/how-erik-allebest-built-150-million-chess-empire/">Neon Fund podcast — Allebest revenue progression quote</a></li>
+    <li><a href="https://www.hey.gg/blog/chess">Hey.gg — Chess.com $0 to $100M</a></li>
+    <li><a href="https://about.websummit.com/summary-service/were-looking-into-opportunities-to-make-a-killer-show-alex-leibow-vp-of-content-media-chess-com/">Web Summit — Alex Leibow "killer show" quote</a></li>
+    <li><a href="https://softwareengineeringdaily.com/2024/02/01/building-chess-com-with-jay-severson/">SED — Jay Severson (Feb 2024)</a></li>
+    <li><a href="https://www.getrecall.ai/summary/20vc-with-harry-stebbings/erik-allebest-scaling-to-dollar100m-revenue-150m-members-and-700-people-all-with-no-vc-funding-or-e1113">20VC — Allebest "no VC" interview</a></li>
+    <li><a href="https://www.sramanamitra.com/2021/11/29/solo-student-entrepreneur-to-over-50m-revenue-chess-com-ceo-erik-allebest-part-1/">Sramana Mitra — Allebest interview (2021)</a></li>
+    <li><a href="https://www.comparably.com/companies/chess-com/executive-team">Comparably — Chess.com exec team</a></li>
+    <li><a href="https://opengovwa.com/corporation/604127269">OpenGovWA — Chess.com LLC WA registration</a> · <a href="https://opencorporates.com/companies/us_ca/201307110200">OpenCorporates CA</a></li>
+  </ul>
+
+  <h3>Wikipedia and secondary aggregators</h3>
+  <ul class="bib-list">
+    <li><a href="https://en.wikipedia.org/wiki/Chess.com">Chess.com</a> · <a href="https://en.wikipedia.org/wiki/Play_Magnus_Group">Play Magnus Group</a> · <a href="https://en.wikipedia.org/wiki/Chess24">Chess24</a> · <a href="https://en.wikipedia.org/wiki/Play_Magnus_(mobile_app)">Play Magnus app</a> · <a href="https://en.wikipedia.org/wiki/Internet_Chess_Club">Internet Chess Club</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Champions_Chess_Tour_2025">Champions Chess Tour 2025</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Daniel_Rensch">Daniel Rensch</a> · <a href="https://en.wikipedia.org/wiki/Kassa_Korley">Kassa Korley</a> · <a href="https://en.wikipedia.org/wiki/Hikaru_Nakamura">Hikaru Nakamura</a> · <a href="https://en.wikipedia.org/wiki/Levy_Rozman">Levy Rozman</a> · <a href="https://en.wikipedia.org/wiki/Anna_Cramling">Anna Cramling</a> · <a href="https://en.wikipedia.org/wiki/Alexandra_Botez">Alexandra Botez</a></li>
+    <li><a href="https://chessbase.in/news/Take-Take-Take">ChessBase India — TTT</a></li>
+    <li><a href="https://www.crunchbase.com/organization/fantasy-chess">Crunchbase — Take Take Take</a></li>
+  </ul>
+</div>
+
+<hr>
+
+<p style="font-family:var(--sans);font-size:11px;color:var(--ink-4);text-align:center;margin-top:60px;">
+  Chess.com Deep Dive · Compiled by Mike Daykhin · 25 May 2026 · AI-native research workflow<br>
+  Personal pre-application analysis · External view · Not affiliated with Chess.com<br>
+  All financial figures reconstructed — Chess.com is a private company.
+</p>
+
+</div><!-- /.content-inner -->
+</main>
+</div><!-- /.layout -->
+
+<button class="to-top" id="toTop" title="Back to top">↑</button>
+
+<script>
+// ============================================================
+// Sidebar toggle (mobile)
+// ============================================================
+const sb  = document.getElementById('sidebar');
+const tgl = document.getElementById('sidebarToggle');
+tgl && tgl.addEventListener('click', () => sb.classList.toggle('open'));
+
+// ============================================================
+// Active section in sidebar (scrollspy)
+// ============================================================
+const sections = Array.from(document.querySelectorAll('h2[id], h3[id], section[id]'));
+const navLinks = Array.from(document.querySelectorAll('.sidebar nav a'));
+
+function updateActive() {
+  const y = window.scrollY + 130;
+  let current = sections[0]?.id;
+  for (const s of sections) {
+    if (s.offsetTop <= y) current = s.id;
+  }
+  navLinks.forEach(a => {
+    const href = a.getAttribute('href');
+    a.classList.toggle('active', href === '#' + current);
+  });
+
+  // Back-to-top visibility
+  const btn = document.getElementById('toTop');
+  if (window.scrollY > 600) btn.classList.add('visible');
+  else btn.classList.remove('visible');
+}
+window.addEventListener('scroll', updateActive, { passive: true });
+updateActive();
+
+// Back to top
+document.getElementById('toTop').addEventListener('click', () =>
+  window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// ============================================================
+// Sortable tables
+// ============================================================
+document.querySelectorAll('table.sortable').forEach(tbl => {
+  const ths = tbl.querySelectorAll('thead th');
+  ths.forEach((th, idx) => {
+    th.addEventListener('click', () => {
+      const isNumber = th.dataset.sort === 'number' || /\d/.test(th.textContent);
+      const tbody = tbl.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const asc = !th.classList.contains('sort-asc');
+      ths.forEach(t => t.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+      rows.sort((a, b) => {
+        let av = a.children[idx]?.innerText.trim() ?? '';
+        let bv = b.children[idx]?.innerText.trim() ?? '';
+        if (isNumber || th.dataset.sort === 'number') {
+          const num = s => {
+            const m = s.replace(/[, ]/g, '').match(/-?\d+(\.\d+)?/);
+            return m ? parseFloat(m[0]) : 0;
+          };
+          return asc ? num(av) - num(bv) : num(bv) - num(av);
+        }
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+});
+
+// ============================================================
+// Charts — shared styling
+// ============================================================
+const PAL = {
+  ink:     '#1a1a1a',
+  ink2:    '#3d3d3d',
+  ink3:    '#6b6b6b',
+  ink4:    '#9a9a9a',
+  rule:    '#e6e3dc',
+  accent:  '#8a2a2a',
+  accent2: '#bf6a6a',
+  verified:'#2f6e3c',
+  estim:   '#8a6d1e',
+};
+
+Chart.defaults.font.family = '-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif';
+Chart.defaults.font.size   = 11.5;
+Chart.defaults.color       = PAL.ink2;
+Chart.defaults.borderColor = PAL.rule;
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+Chart.defaults.plugins.legend.labels.boxHeight = 8;
+Chart.defaults.plugins.legend.labels.padding = 14;
+Chart.defaults.plugins.tooltip.backgroundColor = '#1a1a1a';
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.titleFont = { weight: '600', size: 12 };
+Chart.defaults.plugins.tooltip.bodyFont  = { size: 12 };
+
+// ============== Members + DAU chart ==============
+new Chart(document.getElementById('chartMembersDau'), {
+  type: 'line',
+  data: {
+    labels: ['2019','2020 Jun','2022 Dec','2023 Oct','2025 Apr','Q3 2025','Q4 2025','Q1 2026'],
+    datasets: [
+      {
+        label: 'Registered members (M)',
+        data: [20, 35, 100, 150, 200, 235, 243, 252],
+        borderColor: PAL.accent, backgroundColor: 'rgba(138,42,42,0.08)',
+        borderWidth: 2.2, tension: 0.28,
+        pointRadius: 3, pointBackgroundColor: PAL.accent,
+        yAxisID: 'y',
+        fill: true,
+      },
+      {
+        label: 'DAU (M, avg)',
+        data: [null, null, 7.0, 11.0, null, 8.1, 8.7, 9.7],
+        borderColor: PAL.ink2, backgroundColor: 'transparent',
+        borderWidth: 1.8, borderDash: [4,3], tension: 0.25,
+        pointRadius: 3, pointBackgroundColor: PAL.ink2,
+        yAxisID: 'y1',
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { position: 'bottom', align: 'start' },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y != null ? c.parsed.y + 'M' : 'n/a'}` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: PAL.ink3 } },
+      y:  { position: 'left',  beginAtZero: true, title: { display: true, text: 'Registered members (M)', color: PAL.ink3, font: { size: 10 } }, ticks: { color: PAL.ink3 }, grid: { color: PAL.rule } },
+      y1: { position: 'right', beginAtZero: true, max: 14, title: { display: true, text: 'DAU (M)', color: PAL.ink3, font: { size: 10 } }, ticks: { color: PAL.ink3 }, grid: { display: false } }
+    }
+  }
+});
+
+// ============== Revenue mix doughnut ==============
+new Chart(document.getElementById('chartRevMix'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Subscriptions ~$132M (88%)', 'Advertising ~$15M (10%)', 'Sponsorships ~$3M (2%)'],
+    datasets: [{
+      data: [88, 10, 2],
+      backgroundColor: [PAL.accent, PAL.estim, PAL.ink3],
+      borderColor: '#fbfaf7', borderWidth: 3
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { position: 'right', align: 'center', labels: { padding: 12, font: { size: 12 } } },
+      tooltip: { callbacks: { label: c => `${c.label} — ${c.parsed}%` } }
+    }
+  }
+});
+
+// ============== Quarterly registrations + DAU ==============
+new Chart(document.getElementById('chartRegistrations'), {
+  type: 'bar',
+  data: {
+    labels: ['Q3 2025','Q4 2025','Q1 2026'],
+    datasets: [
+      {
+        label: 'New registrations (M, quarter)',
+        data: [11.4, 13.5, 14.9],
+        backgroundColor: PAL.accent,
+        borderRadius: 2, barThickness: 38,
+        yAxisID: 'y',
+        order: 2
+      },
+      {
+        label: 'DAU avg (M)',
+        data: [8.1, 8.7, 9.7],
+        type: 'line',
+        borderColor: PAL.ink2, backgroundColor: 'transparent',
+        borderWidth: 2, tension: 0.2,
+        pointRadius: 4, pointBackgroundColor: PAL.ink2,
+        yAxisID: 'y1',
+        order: 1
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', align: 'start' },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y}M` } }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: PAL.ink3 } },
+      y:  { position: 'left',  beginAtZero: true, ticks: { color: PAL.ink3, callback: v => v + 'M' }, grid: { color: PAL.rule } },
+      y1: { position: 'right', beginAtZero: true, ticks: { color: PAL.ink3, callback: v => v + 'M' }, grid: { display: false } }
+    }
+  }
+});
+
+// ============== Viral / broadcast overlay ==============
+new Chart(document.getElementById('chartViral'), {
+  type: 'bar',
+  data: {
+    labels: [
+      'WCC 2024\n(Gukesh)',
+      'Carlsen×Rogan\n(podcast Feb 25)',
+      'Norway Chess\n2025',
+      'EWC 2025\nFinal',
+      'GothamChess\nvs World',
+      'SCC 2025\nLondon Live',
+      'Tata Steel\n2025'
+    ],
+    datasets: [
+      {
+        label: 'Peak viewers / engagement (K)',
+        data: [517, 4700, 251, 259, 225, 107, 125],
+        backgroundColor: ctx => {
+          const v = ctx.parsed.y;
+          if (v > 1000) return PAL.estim;
+          return PAL.accent;
+        },
+        borderRadius: 2, barThickness: 30,
+        yAxisID: 'y'
+      },
+      {
+        label: 'New registrations YoY (%)',
+        data: [30, 30, 30, 30, 26, 24, 24],
+        type: 'line',
+        borderColor: PAL.ink2, backgroundColor: 'transparent',
+        borderWidth: 1.5, tension: 0.2, borderDash: [3,3],
+        pointRadius: 3, pointBackgroundColor: PAL.ink2,
+        yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', align: 'start' },
+      tooltip: {
+        callbacks: {
+          label: c => c.datasetIndex === 0
+            ? `${c.dataset.label}: ${c.parsed.y}K`
+            : `${c.dataset.label}: +${c.parsed.y}%`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: PAL.ink3, font: { size: 10 } } },
+      y: { position: 'left', beginAtZero: true, title: { display: true, text: 'Peak viewers / engagement (K)', color: PAL.ink3, font: { size: 10 } }, ticks: { color: PAL.ink3, callback: v => v + 'K' }, grid: { color: PAL.rule } },
+      y1:{ position: 'right', beginAtZero: true, max: 35, title: { display: true, text: 'Registrations YoY %', color: PAL.ink3, font: { size: 10 } }, ticks: { color: PAL.ink3, callback: v => '+' + v + '%' }, grid: { display: false } }
+    }
+  }
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV — Mike Daykhin → Chess.com</title>
+<style>
+  :root{
+    --ink:#23272e; --text:#3b4047; --muted:#7e848d;
+    --green:#81b64c; --green-dk:#4f7d2c; --hair:#e7e9ec;
+    --accent:#8a2a2a;
+    --bg:#eceef1; --paper:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{ background:var(--bg); }
+  body{
+    font-family:"Helvetica Neue",Arial,"Segoe UI",system-ui,sans-serif;
+    color:var(--text); -webkit-font-smoothing:antialiased;
+  }
+
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    background:#1d2129; color:#e7e9ec;
+    padding:10px 22px;
+    display:flex; gap:14px; align-items:center;
+    font-size:13px; font-family:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+    border-bottom:1px solid #000;
+  }
+  .topbar a{
+    color:#cfd3d8; text-decoration:none;
+    padding:6px 12px; border:1px solid #3a3f48; border-radius:4px;
+    transition:all .12s;
+  }
+  .topbar a:hover{ background:#2a2f38; color:#fff; border-color:#4a4f58; }
+  .topbar a.primary{ background:var(--green-dk); border-color:var(--green-dk); color:#fff; }
+  .topbar a.primary:hover{ background:var(--green); border-color:var(--green); }
+  .topbar .crumb{ color:#9aa0a8; flex:1; }
+
+  .doc{
+    background:var(--paper);
+    max-width:840px;
+    margin:28px auto;
+    box-shadow:0 4px 20px rgba(0,0,0,.08);
+    padding:48px 56px;
+  }
+
+  .name{ font-size:31px; font-weight:700; letter-spacing:.3px; color:var(--ink); line-height:1.05; }
+  .target{ margin-top:11px; font-size:14.5px; font-weight:700; letter-spacing:.3px; color:var(--green-dk); }
+  .contact-hub{ margin-top:9px; font-size:13px; }
+  .contact-hub a.hub{ color:var(--green-dk); font-weight:600; text-decoration:none; }
+  .contact-hub a.hub:hover{ color:var(--green); text-decoration:underline; }
+  .contact{ margin-top:4px; font-size:12px; color:var(--muted); }
+  .contact a{ color:var(--muted); text-decoration:none; }
+  .contact a:hover{ color:var(--ink); }
+  .tags{ margin-top:8px; font-size:11px; color:#6b7178; letter-spacing:.6px; }
+  .rule-green{ height:2px; background:var(--green); border:0; margin:16px 0 19px; border-radius:2px; }
+
+  section{ margin-top:22px; }
+  h2{ font-size:12.5px; font-weight:700; letter-spacing:1.3px; text-transform:uppercase;
+    color:var(--green-dk); padding-bottom:6px; border-bottom:1px solid var(--hair); margin-bottom:12px; }
+
+  .summary{ font-size:13px; line-height:1.72; margin-bottom:10px; }
+  .summary:last-child{ margin-bottom:0; }
+  .summary strong{ color:var(--ink); font-weight:600; }
+
+  .comp-grid{ display:grid; grid-template-columns:1fr; gap:11px; }
+  .comp{ font-size:12.6px; line-height:1.6; }
+  .comp .lbl{ display:block; color:var(--ink); font-weight:700; letter-spacing:.3px; margin-bottom:2px; }
+  .comp .items{ color:var(--text); }
+  .comp .dot{ color:var(--green); font-weight:700; padding:0 5px; }
+
+  .chess h2 .pawn{ color:var(--green-dk); }
+  .chess p{ font-size:13px; line-height:1.72; }
+  .chess p strong{ color:var(--ink); font-weight:600; }
+
+  ul{ list-style:none; }
+  li{ position:relative; padding-left:16px; margin-bottom:9px; font-size:12.7px; line-height:1.58; }
+  li::before{ content:""; position:absolute; left:0; top:8px; width:5px; height:5px; background:var(--green); border-radius:50%; }
+  li b{ color:var(--ink); font-weight:600; }
+
+  .xp{ margin-bottom:13px; }
+  .xline{ font-size:12.9px; line-height:1.5; }
+  .xline .co{ color:var(--ink); font-weight:700; }
+  .xline .pos{ color:var(--green-dk); font-weight:600; }
+  .xline .when{ color:var(--muted); font-weight:400; }
+  .xp .d{ font-size:12.2px; color:var(--text); margin-top:3px; line-height:1.55; }
+  .xp .d + .d{ margin-top:5px; }
+
+  .earlier-h{ font-size:12.5px; font-weight:700; color:var(--ink); margin:18px 0 8px; letter-spacing:.3px; }
+  .mini{ margin-bottom:9px; }
+  .mini .ml{ font-size:12.6px; color:var(--ink); font-weight:700; }
+  .mini .mp{ color:var(--green-dk); font-weight:600; font-size:12.4px; }
+  .mini .mw{ color:var(--muted); font-size:11.8px; }
+  .mini .md{ font-size:12.1px; color:var(--text); margin-top:2px; line-height:1.55; }
+
+  .edu{ font-size:12.4px; line-height:1.6; }
+  .edu b{ color:var(--ink); font-weight:600; }
+
+  .nextnav{
+    max-width:840px; margin:14px auto 40px; padding:0 56px;
+    display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+    font-size:13px; font-family:-apple-system,BlinkMacSystemFont,"Inter",system-ui,sans-serif;
+  }
+  .nextnav a{
+    color:var(--green-dk); text-decoration:none;
+    padding:8px 14px; border:1px solid var(--hair); border-radius:4px; background:#fff;
+    transition:all .12s;
+  }
+  .nextnav a:hover{ border-color:var(--green); color:var(--green-dk); }
+
+  @media (max-width:720px){
+    .doc{ padding:30px 24px; margin:14px; }
+    .nextnav{ padding:0 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="./">← All application materials</a>
+  <span class="crumb">CV</span>
+  <a class="primary" href="./Mike-Daykhin-CV-ChessCom.pdf" download>↓ Download PDF</a>
+</div>
+
+<div class="doc">
+
+  <header>
+    <div class="name">Mike Daykhin</div>
+    <div class="target">SVP, Commercial Strategy — Chess.com</div>
+    <div class="tags">Commercial Strategy · Partnerships · Content &amp; Product Monetization</div>
+    <div class="contact-hub"><a class="hub" href="https://chess-com-application.daykhin.com">chess-com-application.daykhin.com</a></div>
+    <div class="contact"><a href="mailto:mike@daykhin.com">mike@daykhin.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/mdaykhin">LinkedIn</a> &nbsp;·&nbsp; Tel Aviv, Israel (EMEA) &nbsp;·&nbsp; Remote, full overlap with U.S. hours &nbsp;·&nbsp; chess.com: MikeDay-1</div>
+  </header>
+  <hr class="rule-green">
+
+  <section style="margin-top:0;">
+    <h2>Summary</h2>
+    <p class="summary">Commercial strategy and partnerships executive with <strong>three decades of creating value</strong> across media, fintech, banking, telecom, retail, e-commerce, and HR tech.</p>
+    <p class="summary">My operating pattern is <strong>business synergy</strong>: connecting assets that normally sit in separate silos — product, content, audience, brand, payments, distribution, and community — into new commercial models. I work at both ends: shaping strategy and getting deals across the line.</p>
+    <p class="summary">Former CPO, CEO, founder, and operator with <strong>P&amp;L ownership in the tens of millions</strong>, leader-of-leaders experience, and a track record of building product-integrated partnerships with <strong>Mastercard, Visa, 3M, Tinkoff, Magnit, Apple, Google, and P&amp;G</strong>.</p>
+    <p class="summary">In recent years, I have developed an <strong>AI-native operating model</strong> that lets me move from strategy to prototype to commercial narrative in days, so brands and internal teams can react to something real rather than a deck.</p>
+  </section>
+
+  <section class="chess">
+    <h2><span class="pawn">♟</span> &nbsp;Chess</h2>
+    <p class="chess">Learned chess at four; trained in a Soviet-era chess school from ages 7–11, reaching first adult category. <strong>Chess.com member since 2013</strong>: 22,000+ puzzles and roughly 5,000 blitz games. Recently returned to OTB chess almost daily in Tel Aviv. I see chess as one of the world's most under-monetized global communities, with major upside across content, product, live play, creators, education, events, local communities, and brand partnerships.</p>
+  </section>
+
+  <section>
+    <h2>Core Competencies</h2>
+    <div class="comp-grid">
+      <div class="comp"><span class="lbl">Commercial Strategy</span><span class="items">Revenue architecture<span class="dot">•</span>P&amp;L ownership<span class="dot">•</span>New monetization models<span class="dot">•</span>Deal structuring<span class="dot">•</span>Partnership strategy<span class="dot">•</span>Market expansion<span class="dot">•</span>Executive negotiation</span></div>
+      <div class="comp"><span class="lbl">Partnerships &amp; Ecosystems</span><span class="items">Brand partnerships<span class="dot">•</span>Sponsorship integrations<span class="dot">•</span>Product-integrated partnerships<span class="dot">•</span>B2B2C ecosystems<span class="dot">•</span>Payment networks<span class="dot">•</span>Loyalty ecosystems<span class="dot">•</span>Global consumer brands<span class="dot">•</span>Trust-critical commercial integrations</span></div>
+      <div class="comp"><span class="lbl">Content, Product &amp; Community</span><span class="items">Content / IP licensing<span class="dot">•</span>Subscription models<span class="dot">•</span>Audience monetization<span class="dot">•</span>Gaming and enthusiast communities<span class="dot">•</span>Live / broadcast activations<span class="dot">•</span>Creator formats<span class="dot">•</span>AI-native commercial prototyping</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Selected Career Highlights</h2>
+    <ul>
+      <li>Owned all non-advertising content monetization at <b>TNT, a national TV broadcaster</b> — licensing, publishing, DVDs, brand integrations, interactive services, and early streaming. Fully autonomous <b>P&amp;L in the tens of millions of USD per year, representing 10%+ of channel revenue</b>. 2007 revenue reached 156% of plan; net cash flow was 48% of revenue and 3.5× plan.</li>
+      <li>Co-built <b>Lifestyle Platform / Magnit Pay</b> from employee #3 to <b>seven million users</b>. Structured the Magnit partnership end to end across <b>20,000+ stores</b>, creating a single-QR transaction that combined loyalty accrual and card payment — requiring POS software changes across the chain.</li>
+      <li>Built and ran a <b>national-champion partnership pipeline at VTB</b>, including national railways, Yandex, e-commerce, airline, grocery chains, and other ecosystem partners. In parallel, led a <b>100+ person migration of a seven-million-user product</b> to the bank's core infrastructure.</li>
+      <li>Led <b>product and commercial innovation</b> across payments, fintech, loyalty, AR, and digital content: <b>Tinkoff / Mastercard</b> co-branded card at Ulmart; early SMS-confirmation card payment; Russia's first paid pre-air HD streaming; markerless AR for MAXIM magazine with three concurrent revenue streams.</li>
+      <li>Architected <b>multi-party tariff and unit economics</b> for two flagship consumer-payment products — <b>Ulmart's Tinkoff/Mastercard co-brand card</b> and <b>Magnit Pay</b> — designing the full stack of interchange, cashback, partner co-investment, loyalty accrual, and acquirer fees across bank, payment scheme, retailer, and end user. The same pricing-design muscle applies directly to subscription tiers, paid-feature engineering, and bundled offerings.</li>
+      <li>Set up an <b>AI-native operating mode</b> through WIP / talenthunt: shipping working partnership and product prototypes for clients like <b>TON and inDrive</b> in days rather than weeks — collapsing the gap between commercial idea, demo, and partner conversation.</li>
+      <li>Built <b>product-integrated brand partnerships inside major media properties</b>, including a <b>3M / Shkola Remonta</b> model that embedded co-branded SKUs organically into a primetime makeover show. Structure combined royalty economics, minimum guarantees, and measurable retail sell-through lift.</li>
+      <li>Created a <b>replicable model at Solvo for monetizing major TV and radio audiences</b> through mobile operators on revenue share. Scaled service range ~7×, achieved full federal coverage, and grew the business to <b>several million USD per month</b>. Company later exited for an estimated <b>$25M</b>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Experience</h2>
+
+    <div class="xp">
+      <div class="xline"><span class="co">WIP Solutions Inc.</span> <span class="pos">— Founder</span> <span class="when">· Feb 2022 – Present · Tel Aviv / Remote</span></div>
+      <div class="d">Founded <b>talenthunt</b>, an AI-native hiring platform with KYC-verified Work Identity and per-candidate AI agents. Built the company solo end to end: strategy, product, design, code, positioning, and go-to-market. Early clients include <b>TON</b> and <b>inDrive</b>.</div>
+      <div class="d">I use AI to compress the distance between idea, prototype, narrative, and market test. This allows concepts to become tangible quickly — useful for partnerships, sponsorships, product extensions, and internal alignment.</div>
+    </div>
+
+    <div class="xp">
+      <div class="xline"><span class="co">VTB Group</span> <span class="pos">— Deputy Director, Partnership Department  /  Lifestyle Platform (bank-backed spin-off) — Deputy CEO &amp; Head of Product</span> <span class="when">· Aug 2019 – Feb 2022 · Moscow / Hybrid</span></div>
+      <div class="d">As <b>Deputy CEO of Lifestyle Platform</b>, joined as employee #3 and effective co-builder of the <b>izi super-app</b>. Built the company and product organization during COVID, fully distributed. Co-created <b>Magnit Pay</b>, scaling to seven million users and hundreds of millions of RUB in turnover.</div>
+      <div class="d">Owned the product side of a complex partnership with <b>Magnit, Russia's #2 retailer, across 20,000+ stores</b>. The creative core was a single-QR transaction combining loyalty accrual and card payment. Reliability across 20,000+ retail touchpoints serving millions of daily transactions was core to the deal — any payment friction immediately reduced store throughput.</div>
+      <div class="d">Maintained direct relationships with <b>Visa, Mastercard, Apple Pay, and Google Wallet</b> — including a <b>six-figure USD GTM grant from Visa</b>. Card-scheme matrix included izi on Mastercard, Magnit Pay on Visa, and wallet-based card-art functionality through Apple Pay and Google Wallet.</div>
+      <div class="d">As <b>Deputy Director of Partnerships at VTB</b>, built an integrated-partnership pipeline with national champions including Russian Railways, Yandex, Wildberries, major airlines, and grocery chains. Concurrently led and completed a <b>100+ person migration of the seven-million-user Magnit Pay</b> to the bank's core platform.</div>
+    </div>
+
+    <div class="xp">
+      <div class="xline"><span class="co">daykhin.com</span> <span class="pos">— Owner, Fractional Partner to Founders &amp; C-Level</span> <span class="when">· Sep 2017 – Present · Remote</span></div>
+      <div class="d">Selective C-level advisory across fintech, payments, HR-tech, e-commerce, retail, and media. Roles included executive sparring partner, fractional CPO, and chief-of-staff-style partner to CEOs and founders.</div>
+      <div class="d">Notable engagements included a <b>digital-ecosystem operator concept for VTB (a top-2 Russian bank)</b>, which unexpectedly led to my Lifestyle Platform super-app trajectory; loyalty-churn analytics and retention design for a major retail chain with multi-million RUB impact; and a retail payment + micro-loan + loyalty concept for a European utilities association.</div>
+    </div>
+
+    <div class="xp">
+      <div class="xline"><span class="co">Ulmart Group</span> <span class="pos">— Director, Financial Technologies; Head of Digital Goods &amp; Payments</span> <span class="when">· Jun 2014 – Sep 2017 · Moscow / St. Petersburg</span></div>
+      <div class="d">Led payments, financial technologies, and digital goods inside <b>Russia's then-#1 e-commerce company (up to ~7,000 employees)</b> — a high-competition, trust-critical environment where every payment failure is a lost sale and a lost customer.</div>
+      <div class="d">Embedded streaming, e-books, travel, and digital software into Ulmart's storefront — effectively a <b>"Ulmart's take on Amazon Prime"</b> play, executed under a hard investor-event deadline across two holdings with a common shareholder.</div>
+      <div class="d">Owned the full <b>payments contour</b>: PSPs, Visa/Mastercard, online lending, installments, and store/courier payment infrastructure. <b>Cashless share grew to ~80% of turnover</b>; online payment commission was <b>reduced by ~10%</b>; <b>800+ cashboxes</b> were renovated; and an in-house courier mobile app was built for fiscal compliance.</div>
+      <div class="d">Reliability across hundreds of thousands of orders was a direct revenue lever — every failed payment cost a transaction and a customer.</div>
+      <div class="d">Launched the <b>Tinkoff / Mastercard co-branded card program</b>, reaching <b>~50K cards</b>. Structured partner co-investment in cashback and activation (<b>a seven-figure USD deal</b>), with the card explicitly designed as a "second card in the wallet" and most spend happening outside Ulmart.</div>
+    </div>
+
+    <div class="xp">
+      <div class="xline"><span class="co">TNT Broadcasting Network</span> <span class="pos">— Director, Special Projects &amp; Business Development</span> <span class="when">· Apr 2007 – Nov 2008 · Moscow</span></div>
+      <div class="d">Owned all non-advertising content monetization for a federal TV channel.</div>
+      <div class="d">Portfolio included licensing, publishing, DVDs, brand integrations, web, interactive SMS-IVR services, and early digital streaming and VOD. Key properties included Dom-2, Comedy Club, Nasha Russia, Shkola Remonta, and dom2.ru.</div>
+      <div class="d">Built a fully autonomous <b>P&amp;L in the tens of millions of USD per year, representing 10%+ of channel revenue</b>. Led a team of <b>20+, mostly direction heads</b> across publishing, interactive services, sponsorship integrations, licensing, digital, and in-house finance.</div>
+      <div class="d">Major initiatives included a <b>3M product-integrated licensing model</b>, monthly <b>Dom-2 magazine at ~720K copies</b>, <b>millions of DVD copies per year</b>, <b>Russian Mobile VAS Award-winning</b> interactive services, and <b>Russia's first paid pre-air HD streaming</b> for Nasha Russia.</div>
+    </div>
+
+    <div class="xp">
+      <div class="xline"><span class="co">Solvo International</span> <span class="pos">— Director, Business Development</span> <span class="when">· Aug 2003 – Apr 2007 · Moscow</span></div>
+      <div class="d">Built the partnership and distribution engine for an interactive content / VAS provider serving mobile operators.</div>
+      <div class="d">Monetized major <b>TV, radio and web audiences</b> — including <b>TNT, Channel One, Avtoradio, mail.ru and Humor FM</b> — through mobile-operator revenue-share distribution. Consolidated a single short-number model across regional operators through a trunk-operator deal with <b>MTT</b>.</div>
+      <div class="d">Grew service range <b>~7×</b>, achieved full federal coverage, and scaled the business to <b>several million USD per month</b>. Company later exited for an estimated <b>$25M</b>.</div>
+    </div>
+
+    <div class="earlier-h">Selected Earlier &amp; Parallel Ventures · 1990s – 2015</div>
+
+    <div class="mini">
+      <span class="ml">KMPKV Unlimited / SmsPal</span> <span class="mp">— CEO, Co-owner</span> <span class="mw">· Jan 2012 – Jul 2015 · Moscow</span>
+      <div class="md">Co-founded an early SMS-confirmation card-payment service — effectively "Apple Pay before Apple Pay" for a pre-wallet market. Orchestrated a bank + telco + merchant scheme with flat per-transaction economics.</div>
+    </div>
+
+    <div class="mini">
+      <span class="ml">AR2Life</span> <span class="mp">— Producer, Business Strategist, Co-owner</span> <span class="mw">· Mar 2011 – Jun 2015 · Moscow</span>
+      <div class="md">Built markerless AR products for print media. Created the <b>MAXIM Ozhivlyator</b> app with three concurrent revenue streams: publisher retainer, iTunes affiliate revenue, and in-app advertising sold through MAXIM's sales house. Second major case: <b>Igromania</b>, a gaming magazine.</div>
+    </div>
+
+    <div class="mini">
+      <span class="ml">Business Synergy Consulting</span> <span class="mw">· Own practice, 2009 – 2014</span>
+      <div class="md">Opportunistic projects across casual gaming, social-network branded content, live-event talent brokering, and commercial concept development.</div>
+    </div>
+
+    <div class="mini">
+      <span class="ml">Rostov Cellular Communications</span> <span class="mw">· 1996 – 2001</span>
+      <div class="md">Commercial lead on the launch of the country's <b>second prepaid cellular system in 1998</b>, including tariff design, dealer network, device sourcing, and brand.</div>
+    </div>
+
+    <div class="mini">
+      <span class="ml">Logoscreen</span> <span class="mw">· mid-1990s · first entrepreneurial experience</span>
+      <div class="md">Own early venture focused on marketing research and BTL activations. Projects included <b>P&amp;G Pampers and Tampax launch programs</b> in pharmacies and maternity hospitals.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Education &amp; Languages</h2>
+    <div class="edu"><b>BSc, Applied Mathematics</b> — Southern Federal University. &nbsp;·&nbsp; <b>Languages:</b> English (fluent) · Russian (native).</div>
+  </section>
+
+</div>
+
+<div class="nextnav">
+  <a href="./cover-letter.html">✉️ Read the cover letter →</a>
+  <a href="./deep-dive.html">🔍 How I think about Chess.com →</a>
+  <a href="./">♟ Back to overview</a>
+</div>
+
+</body>
+</html>
